@@ -1,0 +1,34 @@
+{
+  "rootDir": ".",
+  "compilerOptions": {
+    "target": "esnext",
+    "useDefineForClassFields": true,
+    "module": "ESNext",
+    "lib": ["ESNext", "DOM", "DOM.Iterable", "WebWorker"],
+    "types": ["vite/client", "@comfyorg/comfyui-frontend-types"],
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true,
+    "noImplicitAny": false,
+
+    "paths": {
+      "/scripts/app.js": ["d:/sd/ComfyUI/venv/Lib/site-packages/comfyui_frontend_package/static/scripts/app.js"],
+    }
+
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": []
+}
