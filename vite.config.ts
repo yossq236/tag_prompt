@@ -17,6 +17,7 @@ export default defineConfig({
                 globals: {'/scripts/app.js': 'app'},
             }
         },
+        minify: 'terser',
     },
     worker: {
         format: 'es',

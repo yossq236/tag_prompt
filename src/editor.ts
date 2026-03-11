@@ -364,6 +364,8 @@ export class Editor {
     private createContainer(): HTMLElement {
         const element = document.createElement('div');
         element.style.position = 'relative';
+        element.style.width = '100%';
+        element.style.height = '100%';
         return element;
     }
 
@@ -403,6 +405,7 @@ export class Editor {
         element.style.fontSize = 'var(--comfy-textarea-font-size)';
         element.style.background = 'var(--comfy-input-bg)';
         element.style.color = 'var(--input-text)';
+        element.style.lineHeight = 'normal';
         return element;
     }
 
@@ -427,7 +430,7 @@ export class Editor {
     private createSuggestionViewSelect(parent: HTMLElement): HTMLSelectElement {
         const element = document.createElement('select');
         parent.appendChild(element);
-        element.setAttribute('size', '5');
+        element.setAttribute('size', '10');
         element.style.fontSize = 'var(--comfy-textarea-font-size)';
         element.style.background = 'var(--comfy-input-bg)';
         element.style.color = 'var(--input-text)';
