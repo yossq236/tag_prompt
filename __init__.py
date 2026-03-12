@@ -1,13 +1,22 @@
+from typing import override
+from comfy_api.latest import ComfyExtension, io
+from .node import TagPromptNode
 import os
 from server import PromptServer
 from aiohttp import web
-from .node import TagPromptNode
 
-NODE_CLASS_MAPPINGS = {
-    "TagPromptNode": TagPromptNode
-}
+class MyExtension(ComfyExtension):
+    @override
+    async def get_node_list(self) -> list[type[io.ComfyNode]]:
+        return [TagPromptNode]
+    @override
+    async def on_load(self):
+        pass
+
+async def comfy_entrypoint() -> ComfyExtension:
+    return MyExtension()
+
 WEB_DIRECTORY = "./web/js"
-__all__ = ['NODE_CLASS_MAPPINGS', 'WEB_DIRECTORY']
 
 NODE_DIR = os.path.dirname(__file__)
 NODE_WEB_DIR = os.path.join(NODE_DIR, "web")

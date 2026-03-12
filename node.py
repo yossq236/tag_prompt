@@ -1,4 +1,4 @@
-from comfy_api.latest import ComfyExtension, io
+from comfy_api.latest import io
 import json
 import re
 
@@ -26,10 +26,3 @@ class TagPromptNode(io.ComfyNode):
         strip_lines = list(filter(lambda n: n.strip() != "", strip_text.splitlines()))
         result = "\n".join(strip_lines)
         return io.NodeOutput(result)
-
-class MyExtension(ComfyExtension):
-    async def get_node_list(self) -> list[type[io.ComfyNode]]:
-        return [TagPromptNode]
-
-async def comfy_entrypoint() -> ComfyExtension:
-    return MyExtension()
