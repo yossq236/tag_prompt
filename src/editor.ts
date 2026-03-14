@@ -280,28 +280,32 @@ export class Editor {
         const indent = toggle_lines.map(v => v.replace(/^(\s*)(.*)/, '$1').length).reduce((a,v,i) => (i === 0 || v < a) ? v : a, 0);
         let new_selection_start = selection_start;
         let new_selection_end = selection_end;
-        for (let i = 0, toggle_cursor = toggle_start; i < toggle_lines.length; i++) {
-            const line = toggle_lines[i];
-            if (commentout) {
+        if (commentout) {
+            for (let i = 0, position = toggle_start; i < toggle_lines.length; i++) {
+                const line = toggle_lines[i];
                 toggle_lines[i] = ' '.repeat(indent) + '// ' + line.substring(indent);
-                if (toggle_cursor < new_selection_start) {
+                if (position < new_selection_start) {
                     new_selection_start += 3;
                 }
-                if (toggle_cursor < new_selection_end) {
+                if (position < new_selection_end) {
                     new_selection_end += 3;
                 }
-            } else {
+                position += line.length + 1;
+            }
+        } else {
+            for (let i = 0, position = toggle_start; i < toggle_lines.length; i++) {
+                const line = toggle_lines[i];
                 toggle_lines[i] = line.replace(/(\/\/\s)|(\/\/)/,m => {
-                    if (toggle_cursor < new_selection_start) {
+                    if (position < new_selection_start) {
                         new_selection_start -= m.length;
                     }
-                    if (toggle_cursor < new_selection_end) {
+                    if (position < new_selection_end) {
                         new_selection_end -= m.length;
                     }
                     return '';
                 });
+                position += line.length + 1;
             }
-            toggle_cursor += line.length + 1;
         }
         this.textarea.value = text.substring(0, toggle_start) + toggle_lines.join('\n') + text.substring(toggle_end);
         this.textarea.selectionStart = new_selection_start;
