@@ -273,7 +273,7 @@ export class Editor {
         const selection_start = this.textarea.selectionStart;
         const selection_end = this.textarea.selectionEnd;
         const toggle_start = [text.substring(0, selection_start).lastIndexOf('\n')].reduce((a,v) => (v !== -1) ? v + 1 : a, 0);
-        const toggle_end = [text.substring(0, selection_end).lastIndexOf('\n'), text.indexOf('\n', selection_end)].reduce((a,v) => (v !== -1 && toggle_start < v && v < a) ? v : a, text.length);
+        const toggle_end = [text.substring(0, selection_end).lastIndexOf('\n'), text.indexOf('\n', selection_end)].reduce((a,v) => (v !== -1 && toggle_start < v && (selection_end - 1) <= v && v < a) ? v : a, text.length);
         const toggle_text = text.substring(toggle_start, toggle_end);
         const toggle_lines = toggle_text.split('\n');
         const commentout = toggle_lines.reduce((a,v) => (a || !v.trimStart().startsWith('//')), false);
@@ -284,10 +284,10 @@ export class Editor {
             for (let i = 0, position = toggle_start; i < toggle_lines.length; i++) {
                 const line = toggle_lines[i];
                 toggle_lines[i] = ' '.repeat(indent) + '// ' + line.substring(indent);
-                if (position < new_selection_start) {
+                if (position < selection_start) {
                     new_selection_start += 3;
                 }
-                if (position < new_selection_end) {
+                if (position < selection_end) {
                     new_selection_end += 3;
                 }
                 position += line.length + 1;
@@ -296,10 +296,10 @@ export class Editor {
             for (let i = 0, position = toggle_start; i < toggle_lines.length; i++) {
                 const line = toggle_lines[i];
                 toggle_lines[i] = line.replace(/(\/\/\s)|(\/\/)/,m => {
-                    if (position < new_selection_start) {
+                    if (position < selection_start) {
                         new_selection_start -= m.length;
                     }
-                    if (position < new_selection_end) {
+                    if (position < selection_end) {
                         new_selection_end -= m.length;
                     }
                     return '';
