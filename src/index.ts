@@ -8,7 +8,6 @@ const extension: ComfyExtension = {
         return {
             MY_STRING: (node, inputName, inputData, _app, _widgetName) => {
                 const editor = new Editor();
-                editor.mount();
                 const widget = node.addDOMWidget(inputName, inputData[0], editor.element, {
                     getValue: () => {
                         return editor.state;

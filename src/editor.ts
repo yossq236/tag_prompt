@@ -1,9 +1,9 @@
 import EditorWorker from './editorWorker.ts?sharedworker&url';
 
-interface Cursor {
-    row: number;
-    column: number;
-}
+// interface Cursor {
+//     row: number;
+//     column: number;
+// }
 
 export class Editor {
     // containor
@@ -18,6 +18,12 @@ export class Editor {
     private textareaInputEvent!: (event: Event) => void;
     private textareaScrollEvent!: (event: Event) => void;
     private textareaResizeObserver!: ResizeObserver;
+    private textareaScrollTop: number = 0;
+    private textareaScrollLeft: number = 0;
+    private textareaScrollWidth: number = 0;
+    private textareaScrollHeight: number = 0;
+    private textareaClientWidth: number = 0;
+    private textareaClientHeight: number = 0;
     // suggestion view
     private suggestionViewContainer!: HTMLElement;
     private suggestionViewSelect!: HTMLSelectElement;
@@ -29,48 +35,6 @@ export class Editor {
     // constructor
 
     constructor() {
-    }
-
-    // property
-
-    get element(): HTMLElement {
-        return this.container;
-    }
-
-    get state(): string {
-        return JSON.stringify({
-            text: this.textarea.value,
-            selectionStart: this.textarea.selectionStart,
-            selectionEnd: this.textarea.selectionEnd,
-            scrollTop: this.textarea.scrollTop,
-            scrollLeft: this.textarea.scrollLeft
-        });
-    }
-    set state(newValue: string) {
-        try {
-            const obj = JSON.parse(newValue);
-            if ('text' in obj && 'selectionStart' in obj && 'selectionEnd' in obj && 'scrollTop' in obj && 'scrollLeft' in obj) {
-                this.textarea.value = obj.text;
-                this.textarea.selectionStart = obj.selectionStart;
-                this.textarea.selectionEnd = obj.selectionEnd;
-                setTimeout(() => {
-                    this.textarea.scrollTop = obj.scrollTop;
-                    this.textarea.scrollLeft = obj.scrollLeft;
-                    this.postWorkerUpdateText(false);
-                },0);
-            } else {
-                this.textarea.value = newValue;
-                this.postWorkerUpdateText(false);
-            }
-        } catch (e) {
-            this.textarea.value = newValue;
-            this.postWorkerUpdateText(false);
-        }
-    }
-
-    // mount
-
-    public mount() {
         // create container
         this.container = this.createContainer();
         // create highlight view
@@ -84,19 +48,60 @@ export class Editor {
         this.suggestionViewSelect = this.createSuggestionViewSelect(this.suggestionViewContainer);
         // create worker
         this.editorWorker = new SharedWorker(EditorWorker);
-        // setup highlight view
-        this.reflectStyleToHighlightView();
-        this.reflectSizeToHighlightView();
-        this.reflectScrollToHighlightView();
         // setup event textarea
         this.setupEventTextarea();
         // setup event suggestion view
         this.setupEventSuggestionView();
         // setup event worker
         this.setupEventWorker();
-        // initialize highlight view
-        this.highlightViewCode.innerHTML = this.textarea.value;
-        this.postWorkerUpdateText(false);
+    }
+
+    // property
+
+    get element(): HTMLElement {
+        return this.container;
+    }
+
+    get state(): string {
+        return JSON.stringify({
+            text: this.textarea.value,
+            selectionStart: this.textarea.selectionStart,
+            selectionEnd: this.textarea.selectionEnd,
+            scrollTop: this.textareaScrollTop,
+            scrollLeft: this.textareaScrollLeft,
+        });
+    }
+    set state(newValue: string) {
+        let stateObj = {
+            text: newValue,
+            selectionStart: 0,
+            selectionEnd: 0,
+            scrollTop: 0,
+            scrollLeft: 0,
+        };
+        try {
+            const parseObj = JSON.parse(newValue);
+            if ('text' in parseObj && 'selectionStart' in parseObj && 'selectionEnd' in parseObj && 'scrollTop' in parseObj && 'scrollLeft' in parseObj) {
+                stateObj = parseObj;
+            }
+        } catch (e) {
+        }
+        const change_text = (this.textarea.value !== stateObj.text);
+        const change_scroll = (this.textareaScrollTop !== stateObj.scrollTop || this.textareaScrollLeft !== stateObj.scrollLeft);
+        this.textarea.value = stateObj.text;
+        this.textarea.selectionStart = stateObj.selectionStart;
+        this.textarea.selectionEnd = stateObj.selectionEnd;
+        this.textareaScrollTop = stateObj.scrollTop;
+        this.textareaScrollLeft = stateObj.scrollLeft;
+        if (change_text) {
+            this.postWorkerUpdateText(false);
+        }
+        if (change_scroll) {
+            window.requestAnimationFrame(() => {
+                this.textarea.scrollTop = this.textareaScrollTop;
+                this.textarea.scrollLeft = this.textareaScrollLeft;
+            });
+        }
     }
 
     // unmount
@@ -125,16 +130,19 @@ export class Editor {
 
     private setupEventTextarea() {
         this.textareaKeydownEvent = (event) => {
-            if (event.defaultPrevented) {
+            if (event.defaultPrevented || event.repeat) {
                 return;
             } else if (event.ctrlKey || event.metaKey) {
                 if (event.key === '/') {
                     this.toggleCommentToTextarea();
-                    this.postWorkerUpdateText(false);
                     event.preventDefault();
                 }
             } else if (this.isVisibleSuggestionView()) {
-                if (event.key === 'Tab' || event.key === 'Escape' || event.key === 'ArrowLeft' || event.key === 'ArrowRight' || event.key === 'ArrowUp') {
+                if (event.key === 'Tab') {
+                    this.hiddenSuggestionView();
+                    this.insertWordToTextarea('    ');
+                    event.preventDefault();
+                } else if (event.key === 'Escape' || event.key === 'ArrowLeft' || event.key === 'ArrowRight' || event.key === 'ArrowUp') {
                     this.hiddenSuggestionView();
                 } else if (event.key === 'ArrowDown') {
                     this.focusSuggestionView();
@@ -143,22 +151,27 @@ export class Editor {
             } else {
                 if (event.key === 'Tab') {
                     this.insertWordToTextarea('    ');
-                    this.postWorkerUpdateText(false);
                     event.preventDefault();
                 }
             }
         };
         this.textarea.addEventListener('keydown', this.textareaKeydownEvent);
-        this.textareaInputEvent = (_) => {
+        this.textareaInputEvent = (_event) => {
             this.postWorkerUpdateText(true);
         };
         this.textarea.addEventListener('input', this.textareaInputEvent);
-        this.textareaScrollEvent = (_) => {
-            this.reflectScrollToHighlightView();
+        this.textareaScrollEvent = (_event) => {
+            window.requestAnimationFrame(() => {
+                this.storeScrollPosition();
+                this.reflectScrollPositionToHighlightView();
+            });
         };
         this.textarea.addEventListener('scroll', this.textareaScrollEvent);
         this.textareaResizeObserver = new ResizeObserver(() => {
-            this.reflectSizeToHighlightView();
+            window.requestAnimationFrame(() => {
+                this.storeSize();
+                this.reflectSizeToHighlightView();
+            });
         });
         this.textareaResizeObserver.observe(this.textarea);
     }
@@ -173,7 +186,7 @@ export class Editor {
 
     private setupEventSuggestionView() {
         this.suggestionViewKeydownEvent = (event) => {
-            if (event.defaultPrevented) {
+            if (event.defaultPrevented || event.repeat) {
                 return;
             } else if (event.key === 'Escape') {
                 this.hiddenSuggestionView();
@@ -190,7 +203,6 @@ export class Editor {
                     this.hiddenSuggestionView();
                     this.textarea.focus();
                     this.applySuggestionWordToTextarea(word);
-                    this.postWorkerUpdateText(false);
                     event.preventDefault();
                 }
             }
@@ -213,8 +225,12 @@ export class Editor {
     private setupEventWorker() {
         this.editorWorker.port.onmessage = (event) => {
             this.highlightViewCode.innerHTML = event.data.highlightViewHtml;
-            this.reflectSizeToHighlightView();
-            this.reflectScrollToHighlightView();
+            window.requestAnimationFrame(() => {
+                this.storeSize();
+                this.storeScrollPosition();
+                this.reflectSizeToHighlightView();
+                this.reflectScrollPositionToHighlightView();
+            });
             this.suggestionViewSelect.innerHTML = event.data.suggestionViewHtml;
             if (0 < event.data.suggestionViewHtml.length) {
                 this.visibleSuggestionView();
@@ -226,56 +242,71 @@ export class Editor {
 
     // highlight view 
 
-    private reflectStyleToHighlightView() {
-        this.highlightViewPre.style.fontFamily = this.textarea.style.fontFamily;
-        this.highlightViewPre.style.tabSize = this.textarea.style.tabSize;
-    }
-
     private reflectSizeToHighlightView() {
-        this.highlightViewPre.style.width = this.textarea.scrollWidth + 'px';
-        this.highlightViewPre.style.height = this.textarea.scrollHeight + 'px';
-        this.highlightViewContainer.style.width = this.textarea.clientWidth + 'px';
-        this.highlightViewContainer.style.height = this.textarea.clientHeight + 'px';
+        this.highlightViewPre.style.width = this.textareaScrollWidth + 'px';
+        this.highlightViewPre.style.height = this.textareaScrollHeight + 'px';
+        this.highlightViewContainer.style.width = this.textareaClientWidth + 'px';
+        this.highlightViewContainer.style.height = this.textareaClientHeight + 'px';
     }
 
-    private reflectScrollToHighlightView() {
-        this.highlightViewContainer.scrollLeft = this.textarea.scrollLeft;
-        this.highlightViewContainer.scrollTop = this.textarea.scrollTop;
+    private reflectScrollPositionToHighlightView() {
+        this.highlightViewContainer.scrollTop = this.textareaScrollTop;
+        this.highlightViewContainer.scrollLeft = this.textareaScrollLeft;
     }
 
     // textarea
 
+    private storeSize() {
+        this.textareaScrollWidth = this.textarea.scrollWidth;
+        this.textareaScrollHeight = this.textarea.scrollHeight;
+        this.textareaClientWidth = this.textarea.clientWidth;
+        this.textareaClientHeight = this.textarea.clientHeight;
+    }
+
+    private storeScrollPosition() {
+        this.textareaScrollTop = this.textarea.scrollTop;
+        this.textareaScrollLeft = this.textarea.scrollLeft;
+    }
+
     private toggleCommentToTextarea() {
-        const start = this.textarea.selectionStart;
-        const end = this.textarea.selectionEnd;
         const text = this.textarea.value;
-        const lines = text.split('\n');
-        const cursor_start = Editor.getCursor(text, start);
-        const cursor_end = Editor.getCursor(text, end);
-        const row_start = cursor_start.row;
-        const row_end = ((cursor_start.row < cursor_end.row) && (cursor_end.column === 0)) ? cursor_end.row - 1 : cursor_end.row;
-        let comment = false;
-        for (let i = row_start; i <= row_end; i++) {
-            if (!lines[i].trimStart().startsWith('//')) {
-                comment = true;
-            }
-        }
-        let newSelectionStart = start;
-        let newSelectionEnd = end;
-        for (let i = row_start; i <= row_end; i++) {
-            if (comment) {
-                lines[i] = '// ' + lines[i];
-                newSelectionEnd += 3;
+        const selection_start = this.textarea.selectionStart;
+        const selection_end = this.textarea.selectionEnd;
+        const toggle_start = [text.substring(0, selection_start).lastIndexOf('\n')].reduce((a,v) => (v !== -1) ? v + 1 : a, 0);
+        const toggle_end = [text.substring(0, selection_end).lastIndexOf('\n'), text.indexOf('\n', selection_end)].reduce((a,v) => (v !== -1 && toggle_start < v && v < a) ? v : a, text.length);
+        const toggle_text = text.substring(toggle_start, toggle_end);
+        const toggle_lines = toggle_text.split('\n');
+        const commentout = toggle_lines.reduce((a,v) => (a || !v.trimStart().startsWith('//')), false);
+        const indent = toggle_lines.map(v => v.replace(/^(\s*)(.*)/, '$1').length).reduce((a,v,i) => (i === 0 || v < a) ? v : a, 0);
+        let new_selection_start = selection_start;
+        let new_selection_end = selection_end;
+        for (let i = 0, toggle_cursor = toggle_start; i < toggle_lines.length; i++) {
+            const line = toggle_lines[i];
+            if (commentout) {
+                toggle_lines[i] = ' '.repeat(indent) + '// ' + line.substring(indent);
+                if (toggle_cursor < new_selection_start) {
+                    new_selection_start += 3;
+                }
+                if (toggle_cursor < new_selection_end) {
+                    new_selection_end += 3;
+                }
             } else {
-                lines[i] = lines[i].replace(/(\/\/\s)|(\/\/)/,m => {
-                    newSelectionEnd -= m.length;
+                toggle_lines[i] = line.replace(/(\/\/\s)|(\/\/)/,m => {
+                    if (toggle_cursor < new_selection_start) {
+                        new_selection_start -= m.length;
+                    }
+                    if (toggle_cursor < new_selection_end) {
+                        new_selection_end -= m.length;
+                    }
                     return '';
                 });
             }
+            toggle_cursor += line.length + 1;
         }
-        this.textarea.value = lines.join('\n');
-        this.textarea.selectionStart = newSelectionStart;
-        this.textarea.selectionEnd = newSelectionEnd;
+        this.textarea.value = text.substring(0, toggle_start) + toggle_lines.join('\n') + text.substring(toggle_end);
+        this.textarea.selectionStart = new_selection_start;
+        this.textarea.selectionEnd = new_selection_end;
+        this.postWorkerUpdateText(false);
     }
 
     private insertWordToTextarea(word: string, start?: number, end?: number) {
@@ -284,6 +315,7 @@ export class Editor {
         const text = this.textarea.value;
         this.textarea.value = text.substring(0, start) + word + text.substring(end);
         this.textarea.selectionStart = this.textarea.selectionEnd = start + word.length;
+        this.postWorkerUpdateText(false);
     }
 
     private applySuggestionWordToTextarea(word: string) {
@@ -304,12 +336,12 @@ export class Editor {
         this.insertWordToTextarea(insert_word, start, end);
     }
 
-    private static getCursor(text: string, position: number): Cursor {
-        let row: number = 0;
-        let last: number = -1;
-        for (let i = -1; (i = text.indexOf('\n', i + 1)) !== -1 && i < position; last = i, row++);
-        return {row: row, column: position - last - 1};
-    }
+    // private static getCursor(text: string, position: number): Cursor {
+    //     let row: number = 0;
+    //     let last: number = -1;
+    //     for (let i = -1; (i = text.indexOf('\n', i + 1)) !== -1 && i < position; last = i, row++);
+    //     return {row: row, column: position - last - 1};
+    // }
 
     // suggestion
 
@@ -351,6 +383,7 @@ export class Editor {
     // worker
 
     private postWorkerUpdateText(suggestion: boolean) {
+        console.log('EVENT - postMessage');
         this.editorWorker.port.postMessage({
             suggestion: suggestion,
             selectionStart: this.textarea.selectionStart,
@@ -371,7 +404,6 @@ export class Editor {
 
     private createTextarea(parent: HTMLElement):HTMLTextAreaElement {
         const element = document.createElement('textarea');
-        parent.appendChild(element);
         element.className = 'comfy-multiline-input';
         element.style.width = '100%';
         element.style.height = '100%';
@@ -381,24 +413,24 @@ export class Editor {
         element.style.background = 'transparent';
         element.style.color = 'transparent';
         element.style.caretColor = 'rgb(from var(--comfy-input-bg) calc(255 - r) calc(255 - g) calc(255 - b))';
+        parent.appendChild(element);
         return element;
     }
 
     private createHighlightViewContainer(parent: HTMLElement): HTMLElement {
         const element = document.createElement('div');
-        parent.appendChild(element);
         element.style.position = 'absolute';
         element.style.left = '0';
         element.style.top = '0';
         element.style.overflowX = 'hidden';
         element.style.overflowY = 'hidden';
         element.style.zIndex = '-1';
+        parent.appendChild(element);
         return element;
     }
 
     private createHighlightViewPre(parent: HTMLElement): HTMLElement {
         const element = document.createElement('pre');
-        parent.appendChild(element);
         element.style.margin = '0';
         element.style.border = 'none';
         element.style.padding = '2px';
@@ -406,6 +438,7 @@ export class Editor {
         element.style.background = 'var(--comfy-input-bg)';
         element.style.color = 'var(--input-text)';
         element.style.lineHeight = 'normal';
+        parent.appendChild(element);
         return element;
     }
 
@@ -417,24 +450,24 @@ export class Editor {
 
     private createSuggestionViewContainer(parent: HTMLElement): HTMLElement {
         const element = document.createElement('div');
-        parent.appendChild(element);
         element.style.position = 'absolute';
         element.style.left = '0';
         element.style.top = '0';
         element.style.width = 'fit-content';
         element.style.height = 'auto';
         element.style.visibility = 'hidden';
+        parent.appendChild(element);
         return element;
     }
 
     private createSuggestionViewSelect(parent: HTMLElement): HTMLSelectElement {
         const element = document.createElement('select');
-        parent.appendChild(element);
         element.setAttribute('size', '10');
         element.style.fontSize = 'var(--comfy-textarea-font-size)';
         element.style.background = 'var(--comfy-input-bg)';
         element.style.color = 'var(--input-text)';
         element.style.appearance = 'none';
+        parent.appendChild(element);
         return element;
     }
 }
