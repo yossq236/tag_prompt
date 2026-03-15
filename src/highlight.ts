@@ -1,13 +1,19 @@
-const PATTERN = /\/\/|\/\*|\*\/|\\\(|\\\)|[#]+|[<>()&"'\n]/g;
+const PATTERN = /\/\/|\/\*|\*\/|[#]+|:[0-9\.]+|\\\(|\\\)|[<>()&"'\n]/g;
 
 interface State {
     lineComment: boolean;
     blockComment: boolean;
     section: boolean;
+    parenthesisDepth: number;
 }
 
 function Replacer(match: string, state: State): string {
     switch(match) {
+    case '<': return '&lt;';
+    case '>': return '&gt;';
+    case '&': return '&amp;';
+    case '"': return '&quot;';
+    case '\'': return '&#39;';
     case '//':
         if (state.lineComment || state.blockComment) {
         } else if (state.section) {
@@ -37,38 +43,40 @@ function Replacer(match: string, state: State): string {
             return match + '</span>';
         }
         break;
-    case '#':
-    case '##':
-    case '###':
-    case '####':
-    case '#####':
-        if (state.lineComment || state.blockComment || state.section) {
-        } else {
-            state.section = true;
-            return '<span style="color: #2b91af;">' + match;
-        }
-        break;
-    case '<': return '&lt;';
-    case '>': return '&gt;';
     case '(':
         if (state.lineComment || state.blockComment || state.section) {
         } else {
+            state.parenthesisDepth++;
             return '<span style="color: #ffff00;">' + match + '</span>';
         }
         break;
     case ')':
         if (state.lineComment || state.blockComment || state.section) {
         } else {
+            state.parenthesisDepth--;
             return '<span style="color: #ffff00;">' + match + '</span>';
         }
         break;
-    case '&': return '&amp;';
-    case '"': return '&quot;';
-    case '\'': return '&#39;';
     case '\n':
         if (state.lineComment || state.section) {
             state.section = state.lineComment = false;
             return '</span>' + match;
+        }
+        break;
+    default:
+        switch(match[0]){
+        case '#':
+            if (state.lineComment || state.blockComment || state.section) {
+            } else {
+                state.section = true;
+                return '<span style="color: #2b91af;;"><span style="font-style: italic;">' + match + '</span>';
+            }
+            break;
+        case ':':
+            if (0 < state.parenthesisDepth) {
+                return '<span style="color: #69b076;">' + match + '</span>';
+            }
+            break;
         }
         break;
     }
@@ -80,6 +88,7 @@ export function getHighlightViewHtml(code: string, caret: number): string {
         lineComment: false,
         blockComment: false,
         section: false,
+        parenthesisDepth: 0,
     };
     return code.substring(0, caret).replace(PATTERN, m => Replacer(m, state))
         + '<span class="caret"></span>'

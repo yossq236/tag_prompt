@@ -37,9 +37,9 @@ export class Editor {
     private textareaListenerInput: (event: Event) => void;
     private textareaListenerScroll: (event: Event) => void;
     private textareaResizeObserver: ResizeObserver;
-    private textareaScrollPosition: PositionState;
     private textareaScrollSize: SizeState;
     private textareaClientSize: SizeState;
+    private textareaScrollPosition: PositionState;
     // suggestion view
     private suggestionViewContainer: HTMLElement;
     private suggestionViewSelect: HTMLSelectElement;
@@ -47,6 +47,8 @@ export class Editor {
     private suggestionViewListenerClick: (event: MouseEvent) => void;
     // worker
     private worker: SharedWorker;
+    // animation frame
+    private tickAnimationFrameID: number;
 
     // constructor
 
@@ -63,9 +65,9 @@ export class Editor {
         this.textareaListenerInput = e => this.handleTextareaInput(e);
         this.textareaListenerScroll = e => this.handleTextareaScroll(e);
         this.textareaResizeObserver = new ResizeObserver(e => this.handleTextareaReSize(e));
-        this.textareaScrollPosition = {top: 0, left: 0, dirty: false};
         this.textareaScrollSize = {width: 0, height: 0, dirty: false};
         this.textareaClientSize = {width: 0, height: 0, dirty: false};
+        this.textareaScrollPosition = {top: 0, left: 0, dirty: false};
         // create suggestion view
         this.suggestionViewContainer = this.createSuggestionViewContainer(this.container);
         this.suggestionViewSelect = this.createSuggestionViewSelect(this.suggestionViewContainer);
@@ -74,6 +76,8 @@ export class Editor {
         // create worker
         this.worker = new SharedWorker(EditorWorker);
         this.worker.port.onmessage = e => this.handleWorkerMessage(e);
+        // create animation frame
+        this.tickAnimationFrameID = 0;
         // add event textarea
         this.addTextareaEvent();
         // add event suggestion view
@@ -110,19 +114,17 @@ export class Editor {
             }
         } catch {}
         const change_text = (this.textarea.value !== stateObj.text);
-        const change_scroll = (this.textareaScrollPosition.top !== stateObj.scrollTop || this.textareaScrollPosition.left !== stateObj.scrollLeft);
         this.textarea.value = stateObj.text;
         this.textarea.selectionStart = stateObj.selectionStart;
         this.textarea.selectionEnd = stateObj.selectionEnd;
-        this.forceStoreScrollPosition(stateObj.scrollTop, stateObj.scrollLeft);
+        if (this.textareaScrollPosition.top !== stateObj.scrollTop || this.textareaScrollPosition.left !== stateObj.scrollLeft) {
+            window.requestAnimationFrame(() => {
+                this.textarea.scrollTop = stateObj.scrollTop;
+                this.textarea.scrollLeft = stateObj.scrollLeft;
+            });
+        }
         if (change_text) {
             this.postWorkerUpdateText(false);
-        }
-        if (change_scroll) {
-            window.requestAnimationFrame(() => {
-                this.textarea.scrollTop = this.textareaScrollPosition.top;
-                this.textarea.scrollLeft = this.textareaScrollPosition.left;
-            });
         }
     }
 
@@ -149,19 +151,34 @@ export class Editor {
         this.container.parentElement?.removeChild(this.container);
     }
 
-    // highlight view 
+    // animation frame
 
-    private reflectScrollPositionToHighlightView() {
-        if (this.textareaScrollPosition.dirty) {
-            this.textareaScrollPosition.dirty = false;
-            this.highlightViewContainer.scrollTop = this.textareaScrollPosition.top;
-            this.highlightViewContainer.scrollLeft = this.textareaScrollPosition.left;
+    private requestTickAnimationFrame(): void {
+        if (this.tickAnimationFrameID === 0) {
+            this.tickAnimationFrameID = window.requestAnimationFrame((t: DOMHighResTimeStamp) => this.handleTickAnimationFrame(t));
         }
     }
 
+    private handleTickAnimationFrame(_time: DOMHighResTimeStamp): void {
+        this.tickAnimationFrameID = 0;
+        // textarea
+        this.storeScrollSize();
+        this.storeClientSize();
+        this.storeScrollPosition();
+        // highlight view
+        this.reflectScrollSizeToHighlightView();
+        this.reflectClientSizeToHighlightView();
+        this.reflectScrollPositionToHighlightView();
+        // end
+        this.reflectedScrollSize();
+        this.reflectedClientSize();
+        this.reflectedScrollPosition();
+    }
+
+    // highlight view 
+
     private reflectScrollSizeToHighlightView() {
         if (this.textareaScrollSize.dirty) {
-            this.textareaScrollSize.dirty = false;
             this.highlightViewPre.style.width = this.textareaScrollSize.width + 'px';
             this.highlightViewPre.style.height = this.textareaScrollSize.height + 'px';
         }
@@ -169,9 +186,15 @@ export class Editor {
 
     private reflectClientSizeToHighlightView() {
         if (this.textareaClientSize.dirty) {
-            this.textareaClientSize.dirty = false;
             this.highlightViewContainer.style.width = this.textareaClientSize.width + 'px';
             this.highlightViewContainer.style.height = this.textareaClientSize.height + 'px';
+        }
+    }
+
+    private reflectScrollPositionToHighlightView() {
+        if (this.textareaScrollPosition.dirty) {
+            this.highlightViewContainer.scrollTop = this.textareaScrollPosition.top;
+            this.highlightViewContainer.scrollLeft = this.textareaScrollPosition.left;
         }
     }
 
@@ -220,45 +243,16 @@ export class Editor {
     }
 
     private handleTextareaInput(_event: Event): void {
-        window.requestAnimationFrame(() => {
-            this.storeScrollSize();
-            this.reflectScrollSizeToHighlightView();
-        });
+        this.requestTickAnimationFrame();
         this.postWorkerUpdateText(true);
     }
 
     private handleTextareaScroll(_event: Event): void {
-        window.requestAnimationFrame(() => {
-            this.storeScrollPosition();
-            this.reflectScrollPositionToHighlightView();
-        });
+        this.requestTickAnimationFrame();
     }
 
     private handleTextareaReSize(_entries: Array<ResizeObserverEntry>): void {
-        window.requestAnimationFrame(() => {
-            this.storeClientSize();
-            this.storeScrollSize();
-            this.reflectClientSizeToHighlightView();
-            this.reflectScrollSizeToHighlightView();
-        });
-    }
-
-    private storeScrollPosition() {
-        const top = this.textarea.scrollTop;
-        const left = this.textarea.scrollLeft;
-        if (this.textareaScrollPosition.top !== top || this.textareaScrollPosition.left !== left) {
-            this.textareaScrollPosition.top = top;
-            this.textareaScrollPosition.left = left;
-            this.textareaScrollPosition.dirty = true;
-        }
-    }
-
-    private forceStoreScrollPosition(top: number, left: number) {
-        if (this.textareaScrollPosition.top !== top || this.textareaScrollPosition.left !== left) {
-            this.textareaScrollPosition.top = top;
-            this.textareaScrollPosition.left = left;
-            this.textareaScrollPosition.dirty = true;
-        }
+        this.requestTickAnimationFrame();
     }
 
     private storeScrollSize() {
@@ -271,6 +265,10 @@ export class Editor {
         }
     }
 
+    private reflectedScrollSize() {
+        this.textareaScrollSize.dirty = false;
+    }
+
     private storeClientSize() {
         const width = this.textarea.clientWidth;
         const height = this.textarea.clientHeight;
@@ -281,10 +279,28 @@ export class Editor {
         }
     }
 
+    private reflectedClientSize() {
+        this.textareaClientSize.dirty = false;
+    }
+
+    private storeScrollPosition() {
+        const top = this.textarea.scrollTop;
+        const left = this.textarea.scrollLeft;
+        if (this.textareaScrollPosition.top !== top || this.textareaScrollPosition.left !== left) {
+            this.textareaScrollPosition.top = top;
+            this.textareaScrollPosition.left = left;
+            this.textareaScrollPosition.dirty = true;
+        }
+    }
+
+    private reflectedScrollPosition() {
+        this.textareaScrollPosition.dirty = false;
+    }
+
     private toggleCommentToTextarea() {
-        const text = this.textarea.value;
         const selection_start = this.textarea.selectionStart;
         const selection_end = this.textarea.selectionEnd;
+        const text = this.textarea.value;
         const toggle_start = [text.substring(0, selection_start).lastIndexOf('\n')].reduce((a,v) => (v !== -1) ? v + 1 : a, 0);
         const toggle_end = [text.substring(0, selection_end).lastIndexOf('\n'), text.indexOf('\n', selection_end)].reduce((a,v) => (v !== -1 && toggle_start < v && (selection_end - 1) <= v && v < a) ? v : a, text.length);
         const toggle_text = text.substring(toggle_start, toggle_end);
@@ -323,10 +339,7 @@ export class Editor {
         this.textarea.value = text.substring(0, toggle_start) + toggle_lines.join('\n') + text.substring(toggle_end);
         this.textarea.selectionStart = new_selection_start;
         this.textarea.selectionEnd = new_selection_end;
-        window.requestAnimationFrame(() => {
-            this.storeScrollSize();
-            this.reflectScrollSizeToHighlightView();
-        });
+        this.requestTickAnimationFrame();
         this.postWorkerUpdateText(false);
     }
 
@@ -336,10 +349,7 @@ export class Editor {
         const text = this.textarea.value;
         this.textarea.value = text.substring(0, start) + word + text.substring(end);
         this.textarea.selectionStart = this.textarea.selectionEnd = start + word.length;
-        window.requestAnimationFrame(() => {
-            this.storeScrollSize();
-            this.reflectScrollSizeToHighlightView();
-        });
+        this.requestTickAnimationFrame();
         this.postWorkerUpdateText(false);
     }
 
