@@ -1,4 +1,5 @@
 import { TAGS } from './tags.ts';
+import { MAX_SUGGESTION, ASCII_THRESHOLD } from './constants.ts';
 
 interface Suggestion {
   approx: number;
@@ -6,53 +7,46 @@ interface Suggestion {
 }
 
 export function getSuggestionViewHtml(text: string, start: number, end: number): string {
-    let result: Array<Suggestion> = [];
-    let count = 0;
-    const word = getCursorWord(text, start);
+    const word = getWord(text, start);
+    const result = new Array<Suggestion>;
     if (start === end && 0 < word.length) {
         for (const tag of TAGS) {
             if (tag.indexOf(word) !== -1) {
-                result.push({approx: (word.length / tag.length) * 100, html: '<option value="' + getOptionValue(tag) + '">' + getOptionText(tag) + '</option>'});
-                count++;
-                if (50 < count) break;
+                result.push({approx: 100 - ((word.length / tag.length) * 100), html: '<option value="' + getValue(tag) + '">' + getText(tag) + '</option>'});
+                if (!(result.length <= MAX_SUGGESTION)) break;
             }
         }
     }
-    if (0 < result.length) {
-        result.sort((n1, n2) => n2.approx - n1.approx);
+    if (result.length === 0) {
+        return '';
+    } else {
+        result.sort((n1, n2) => n1.approx - n2.approx);
         return result.map(n => n.html).join('');
-    } else {
-        return '';
     }
 }
 
-function getCursorWord(text: string, start: number): string {
-    let result = '';
-    for (let i = start - 1; 0 <= i; i--) {
-        const c = text.charAt(i);
-        if (c === ' '  || c === ',' || c === '\n' || 255 < c.charCodeAt(0)) break;
-        result += c;
-    }
-    if (0 < result.length) {
-        return result.split('').reverse().join('').trim();
-    } else {
-        return '';
-    }
+function getWord(text: string, start: number): string {
+    let word_start = start;
+    let word_end = start;
+    for (let i = start - 1; 0 <= i && !isDelimiter(text.charAt(i)); word_start = i--);
+    return text.substring(word_start, word_end);
 }
 
-function getOptionValue(tag: string): string {
-    return tag.replaceAll(/[_\(\)]/g,(m) => {
-        if (m === '_') {
-            return ' ';
-        } else if (m === '(') {
-            return '\\(';
-        } else if (m === ')') {
-            return '\\)';
+function isDelimiter(c: string): boolean {
+    return (c === ' ') || (c === ',') || (c === '\n') || (ASCII_THRESHOLD <= c.charCodeAt(0));
+}
+
+function getValue(tag: string): string {
+    return tag.replaceAll(/[_()]/g, m => {
+        switch(m){
+        case '_':return ' ';
+        case '(':return '\\(';
+        case ')':return '\\)';
         }
         return m;
     });
 }
 
-function getOptionText(tag: string): string {
+function getText(tag: string): string {
     return tag.replaceAll('_', ' ');
 }

@@ -1,36 +1,52 @@
 import EditorWorker from './editorWorker.ts?sharedworker&url';
 
-// interface Cursor {
-//     row: number;
-//     column: number;
-// }
+interface State {
+    text: string;
+    selectionStart: number;
+    selectionEnd: number;
+    scrollTop: number;
+    scrollLeft: number;
+}
+
+function isValidState(obj: unknown): obj is State {
+    return (obj !== null) && (typeof obj === 'object') && ('text' in obj) && ('selectionStart' in obj) && ('selectionEnd' in obj) && ('scrollTop' in obj) && ('scrollLeft' in obj);
+}
+
+interface PositionState {
+    top: number;
+    left: number;
+    dirty: boolean;
+}
+
+interface SizeState {
+    width: number;
+    height: number;
+    dirty: boolean;
+}
 
 export class Editor {
     // containor
-    private container!: HTMLElement;
+    private container: HTMLElement;
     // highlight view
-    private highlightViewContainer!: HTMLElement;
-    private highlightViewPre!: HTMLElement;
-    private highlightViewCode!: HTMLElement;
+    private highlightViewContainer: HTMLElement;
+    private highlightViewPre: HTMLElement;
+    private highlightViewCode: HTMLElement;
     // textarea
-    private textarea!: HTMLTextAreaElement;
-    private textareaKeydownEvent!: (event: KeyboardEvent) => void;
-    private textareaInputEvent!: (event: Event) => void;
-    private textareaScrollEvent!: (event: Event) => void;
-    private textareaResizeObserver!: ResizeObserver;
-    private textareaScrollTop: number = 0;
-    private textareaScrollLeft: number = 0;
-    private textareaScrollWidth: number = 0;
-    private textareaScrollHeight: number = 0;
-    private textareaClientWidth: number = 0;
-    private textareaClientHeight: number = 0;
+    private textarea: HTMLTextAreaElement;
+    private textareaListenerKeydown: (event: KeyboardEvent) => void;
+    private textareaListenerInput: (event: Event) => void;
+    private textareaListenerScroll: (event: Event) => void;
+    private textareaResizeObserver: ResizeObserver;
+    private textareaScrollPosition: PositionState;
+    private textareaScrollSize: SizeState;
+    private textareaClientSize: SizeState;
     // suggestion view
-    private suggestionViewContainer!: HTMLElement;
-    private suggestionViewSelect!: HTMLSelectElement;
-    private suggestionViewKeydownEvent!: (event: KeyboardEvent) => void;
-    private suggestionViewClickEvent!: (event: MouseEvent) => void;
+    private suggestionViewContainer: HTMLElement;
+    private suggestionViewSelect: HTMLSelectElement;
+    private suggestionViewListenerKeydown: (event: KeyboardEvent) => void;
+    private suggestionViewListenerClick: (event: MouseEvent) => void;
     // worker
-    private editorWorker!: SharedWorker;
+    private worker: SharedWorker;
 
     // constructor
 
@@ -43,17 +59,25 @@ export class Editor {
         this.highlightViewCode = this.createHighlightViewCode(this.highlightViewPre);
         // create textarea
         this.textarea = this.createTextarea(this.container);
+        this.textareaListenerKeydown = e => this.handleTextareaKeyDown(e);
+        this.textareaListenerInput = e => this.handleTextareaInput(e);
+        this.textareaListenerScroll = e => this.handleTextareaScroll(e);
+        this.textareaResizeObserver = new ResizeObserver(e => this.handleTextareaReSize(e));
+        this.textareaScrollPosition = {top: 0, left: 0, dirty: false};
+        this.textareaScrollSize = {width: 0, height: 0, dirty: false};
+        this.textareaClientSize = {width: 0, height: 0, dirty: false};
         // create suggestion view
         this.suggestionViewContainer = this.createSuggestionViewContainer(this.container);
         this.suggestionViewSelect = this.createSuggestionViewSelect(this.suggestionViewContainer);
+        this.suggestionViewListenerKeydown = e => this.handleSuggestionViewKeyDown(e);
+        this.suggestionViewListenerClick = e => this.handleSuggestionViewClick(e);
         // create worker
-        this.editorWorker = new SharedWorker(EditorWorker);
-        // setup event textarea
-        this.setupEventTextarea();
-        // setup event suggestion view
-        this.setupEventSuggestionView();
-        // setup event worker
-        this.setupEventWorker();
+        this.worker = new SharedWorker(EditorWorker);
+        this.worker.port.onmessage = e => this.handleWorkerMessage(e);
+        // add event textarea
+        this.addTextareaEvent();
+        // add event suggestion view
+        this.addSuggestionViewEvent();
     }
 
     // property
@@ -67,12 +91,12 @@ export class Editor {
             text: this.textarea.value,
             selectionStart: this.textarea.selectionStart,
             selectionEnd: this.textarea.selectionEnd,
-            scrollTop: this.textareaScrollTop,
-            scrollLeft: this.textareaScrollLeft,
+            scrollTop: this.textareaScrollPosition.top,
+            scrollLeft: this.textareaScrollPosition.left,
         });
     }
     set state(newValue: string) {
-        let stateObj = {
+        let stateObj: State = {
             text: newValue,
             selectionStart: 0,
             selectionEnd: 0,
@@ -81,25 +105,23 @@ export class Editor {
         };
         try {
             const parseObj = JSON.parse(newValue);
-            if ('text' in parseObj && 'selectionStart' in parseObj && 'selectionEnd' in parseObj && 'scrollTop' in parseObj && 'scrollLeft' in parseObj) {
+            if (isValidState(parseObj)) {
                 stateObj = parseObj;
             }
-        } catch (e) {
-        }
+        } catch {}
         const change_text = (this.textarea.value !== stateObj.text);
-        const change_scroll = (this.textareaScrollTop !== stateObj.scrollTop || this.textareaScrollLeft !== stateObj.scrollLeft);
+        const change_scroll = (this.textareaScrollPosition.top !== stateObj.scrollTop || this.textareaScrollPosition.left !== stateObj.scrollLeft);
         this.textarea.value = stateObj.text;
         this.textarea.selectionStart = stateObj.selectionStart;
         this.textarea.selectionEnd = stateObj.selectionEnd;
-        this.textareaScrollTop = stateObj.scrollTop;
-        this.textareaScrollLeft = stateObj.scrollLeft;
+        this.forceStoreScrollPosition(stateObj.scrollTop, stateObj.scrollLeft);
         if (change_text) {
             this.postWorkerUpdateText(false);
         }
         if (change_scroll) {
             window.requestAnimationFrame(() => {
-                this.textarea.scrollTop = this.textareaScrollTop;
-                this.textarea.scrollLeft = this.textareaScrollLeft;
+                this.textarea.scrollTop = this.textareaScrollPosition.top;
+                this.textarea.scrollLeft = this.textareaScrollPosition.left;
             });
         }
     }
@@ -108,11 +130,12 @@ export class Editor {
 
     public unmount() {
         // close worker
-        this.editorWorker.port.close();
+        this.worker.port.close();
+        this.worker.port.onmessage = null;
         // remove event suggestion view
-        this.removeEventSuggestionView();
+        this.removeSuggestionViewEvent();
         // remove event textarea
-        this.removeEventTextarea();
+        this.removeTextareaEvent();
         // unmount suggestion view
         this.suggestionViewSelect.parentElement?.removeChild(this.suggestionViewSelect);
         this.suggestionViewContainer.parentElement?.removeChild(this.suggestionViewContainer);
@@ -126,146 +149,136 @@ export class Editor {
         this.container.parentElement?.removeChild(this.container);
     }
 
-    // event 
-
-    private setupEventTextarea() {
-        this.textareaKeydownEvent = (event) => {
-            if (event.defaultPrevented || event.repeat) {
-                return;
-            } else if (event.ctrlKey || event.metaKey) {
-                if (event.key === '/') {
-                    this.toggleCommentToTextarea();
-                    event.preventDefault();
-                }
-            } else if (this.isVisibleSuggestionView()) {
-                if (event.key === 'Tab') {
-                    this.hiddenSuggestionView();
-                    this.insertWordToTextarea('    ');
-                    event.preventDefault();
-                } else if (event.key === 'Escape' || event.key === 'ArrowLeft' || event.key === 'ArrowRight' || event.key === 'ArrowUp') {
-                    this.hiddenSuggestionView();
-                } else if (event.key === 'ArrowDown') {
-                    this.focusSuggestionView();
-                    event.preventDefault();
-                }
-            } else {
-                if (event.key === 'Tab') {
-                    this.insertWordToTextarea('    ');
-                    event.preventDefault();
-                }
-            }
-        };
-        this.textarea.addEventListener('keydown', this.textareaKeydownEvent);
-        this.textareaInputEvent = (_event) => {
-            this.postWorkerUpdateText(true);
-        };
-        this.textarea.addEventListener('input', this.textareaInputEvent);
-        this.textareaScrollEvent = (_event) => {
-            window.requestAnimationFrame(() => {
-                this.storeScrollPosition();
-                this.reflectScrollPositionToHighlightView();
-            });
-        };
-        this.textarea.addEventListener('scroll', this.textareaScrollEvent);
-        this.textareaResizeObserver = new ResizeObserver(() => {
-            window.requestAnimationFrame(() => {
-                this.storeSize();
-                this.reflectSizeToHighlightView();
-            });
-        });
-        this.textareaResizeObserver.observe(this.textarea);
-    }
-
-    private removeEventTextarea() {
-        this.textarea.removeEventListener('keydown', this.textareaKeydownEvent);
-        this.textarea.removeEventListener('input', this.textareaInputEvent);
-        this.textarea.removeEventListener('scroll', this.textareaScrollEvent);
-        this.textareaResizeObserver.unobserve(this.textarea);
-        this.textareaResizeObserver.disconnect();
-    }
-
-    private setupEventSuggestionView() {
-        this.suggestionViewKeydownEvent = (event) => {
-            if (event.defaultPrevented || event.repeat) {
-                return;
-            } else if (event.key === 'Escape') {
-                this.hiddenSuggestionView();
-                this.textarea.focus();
-                event.preventDefault();
-            } else if (event.key === 'Backspace') {
-                this.hiddenSuggestionView();
-                this.textarea.focus();
-                event.preventDefault();
-                event.stopPropagation();
-            } else if (event.key === 'Enter') {
-                const word = this.getSelectSuggestionWord();
-                if (word) {
-                    this.hiddenSuggestionView();
-                    this.textarea.focus();
-                    this.applySuggestionWordToTextarea(word);
-                    event.preventDefault();
-                }
-            }
-        };
-        this.suggestionViewSelect.addEventListener('keydown', this.suggestionViewKeydownEvent);
-        this.suggestionViewClickEvent = (event) => {
-            if (this.suggestionViewContainer.contains(event.target as Node)) {
-            } else {
-                this.hiddenSuggestionView();
-            }
-        };
-        document.addEventListener('click', this.suggestionViewClickEvent);
-    }
-
-    private removeEventSuggestionView() {
-        this.suggestionViewSelect.removeEventListener('keydown', this.suggestionViewKeydownEvent);
-        document.removeEventListener('click', this.suggestionViewClickEvent);
-    }
-
-    private setupEventWorker() {
-        this.editorWorker.port.onmessage = (event) => {
-            this.highlightViewCode.innerHTML = event.data.highlightViewHtml;
-            window.requestAnimationFrame(() => {
-                this.storeSize();
-                this.storeScrollPosition();
-                this.reflectSizeToHighlightView();
-                this.reflectScrollPositionToHighlightView();
-            });
-            this.suggestionViewSelect.innerHTML = event.data.suggestionViewHtml;
-            if (0 < event.data.suggestionViewHtml.length) {
-                this.visibleSuggestionView();
-            } else {
-                this.hiddenSuggestionView();
-            }
-        };
-    }
-
     // highlight view 
 
-    private reflectSizeToHighlightView() {
-        this.highlightViewPre.style.width = this.textareaScrollWidth + 'px';
-        this.highlightViewPre.style.height = this.textareaScrollHeight + 'px';
-        this.highlightViewContainer.style.width = this.textareaClientWidth + 'px';
-        this.highlightViewContainer.style.height = this.textareaClientHeight + 'px';
+    private reflectScrollPositionToHighlightView() {
+        if (this.textareaScrollPosition.dirty) {
+            this.textareaScrollPosition.dirty = false;
+            this.highlightViewContainer.scrollTop = this.textareaScrollPosition.top;
+            this.highlightViewContainer.scrollLeft = this.textareaScrollPosition.left;
+        }
     }
 
-    private reflectScrollPositionToHighlightView() {
-        this.highlightViewContainer.scrollTop = this.textareaScrollTop;
-        this.highlightViewContainer.scrollLeft = this.textareaScrollLeft;
+    private reflectScrollSizeToHighlightView() {
+        if (this.textareaScrollSize.dirty) {
+            this.textareaScrollSize.dirty = false;
+            this.highlightViewPre.style.width = this.textareaScrollSize.width + 'px';
+            this.highlightViewPre.style.height = this.textareaScrollSize.height + 'px';
+        }
+    }
+
+    private reflectClientSizeToHighlightView() {
+        if (this.textareaClientSize.dirty) {
+            this.textareaClientSize.dirty = false;
+            this.highlightViewContainer.style.width = this.textareaClientSize.width + 'px';
+            this.highlightViewContainer.style.height = this.textareaClientSize.height + 'px';
+        }
     }
 
     // textarea
 
-    private storeSize() {
-        this.textareaScrollWidth = this.textarea.scrollWidth;
-        this.textareaScrollHeight = this.textarea.scrollHeight;
-        this.textareaClientWidth = this.textarea.clientWidth;
-        this.textareaClientHeight = this.textarea.clientHeight;
+    private addTextareaEvent() {
+        this.textarea.addEventListener('keydown', this.textareaListenerKeydown);
+        this.textarea.addEventListener('input', this.textareaListenerInput);
+        this.textarea.addEventListener('scroll', this.textareaListenerScroll);
+        this.textareaResizeObserver.observe(this.textarea);
+    }
+
+    private removeTextareaEvent() {
+        this.textarea.removeEventListener('keydown', this.textareaListenerKeydown);
+        this.textarea.removeEventListener('input', this.textareaListenerInput);
+        this.textarea.removeEventListener('scroll', this.textareaListenerScroll);
+        this.textareaResizeObserver.unobserve(this.textarea);
+        this.textareaResizeObserver.disconnect();
+    }
+
+    private handleTextareaKeyDown(event: KeyboardEvent): void {
+        if (event.defaultPrevented || event.repeat) {
+            return;
+        } else if (event.ctrlKey || event.metaKey) {
+            if (event.key === '/') {
+                this.toggleCommentToTextarea();
+                event.preventDefault();
+            }
+        } else if (this.isVisibleSuggestionView()) {
+            if (event.key === 'Tab') {
+                this.hiddenSuggestionView();
+                this.insertWordToTextarea('    ');
+                event.preventDefault();
+            } else if (event.key === 'Escape' || event.key === 'ArrowLeft' || event.key === 'ArrowRight' || event.key === 'ArrowUp') {
+                this.hiddenSuggestionView();
+            } else if (event.key === 'ArrowDown') {
+                this.focusSuggestionView();
+                event.preventDefault();
+            }
+        } else {
+            if (event.key === 'Tab') {
+                this.insertWordToTextarea('    ');
+                event.preventDefault();
+            }
+        }
+    }
+
+    private handleTextareaInput(_event: Event): void {
+        window.requestAnimationFrame(() => {
+            this.storeScrollSize();
+            this.reflectScrollSizeToHighlightView();
+        });
+        this.postWorkerUpdateText(true);
+    }
+
+    private handleTextareaScroll(_event: Event): void {
+        window.requestAnimationFrame(() => {
+            this.storeScrollPosition();
+            this.reflectScrollPositionToHighlightView();
+        });
+    }
+
+    private handleTextareaReSize(_entries: Array<ResizeObserverEntry>): void {
+        window.requestAnimationFrame(() => {
+            this.storeClientSize();
+            this.storeScrollSize();
+            this.reflectClientSizeToHighlightView();
+            this.reflectScrollSizeToHighlightView();
+        });
     }
 
     private storeScrollPosition() {
-        this.textareaScrollTop = this.textarea.scrollTop;
-        this.textareaScrollLeft = this.textarea.scrollLeft;
+        const top = this.textarea.scrollTop;
+        const left = this.textarea.scrollLeft;
+        if (this.textareaScrollPosition.top !== top || this.textareaScrollPosition.left !== left) {
+            this.textareaScrollPosition.top = top;
+            this.textareaScrollPosition.left = left;
+            this.textareaScrollPosition.dirty = true;
+        }
+    }
+
+    private forceStoreScrollPosition(top: number, left: number) {
+        if (this.textareaScrollPosition.top !== top || this.textareaScrollPosition.left !== left) {
+            this.textareaScrollPosition.top = top;
+            this.textareaScrollPosition.left = left;
+            this.textareaScrollPosition.dirty = true;
+        }
+    }
+
+    private storeScrollSize() {
+        const width = this.textarea.scrollWidth;
+        const height = this.textarea.scrollHeight;
+        if (this.textareaScrollSize.width !== width || this.textareaScrollSize.height !== height) {
+            this.textareaScrollSize.width = width;
+            this.textareaScrollSize.height = height;
+            this.textareaScrollSize.dirty = true;
+        }
+    }
+
+    private storeClientSize() {
+        const width = this.textarea.clientWidth;
+        const height = this.textarea.clientHeight;
+        if (this.textareaClientSize.width !== width || this.textareaClientSize.height !== height) {
+            this.textareaClientSize.width = width;
+            this.textareaClientSize.height = height;
+            this.textareaClientSize.dirty = true;
+        }
     }
 
     private toggleCommentToTextarea() {
@@ -295,7 +308,7 @@ export class Editor {
         } else {
             for (let i = 0, position = toggle_start; i < toggle_lines.length; i++) {
                 const line = toggle_lines[i];
-                toggle_lines[i] = line.replace(/(\/\/\s)|(\/\/)/,m => {
+                toggle_lines[i] = line.replace(/\/\/\s?/,m => {
                     if (position < selection_start) {
                         new_selection_start -= m.length;
                     }
@@ -310,6 +323,10 @@ export class Editor {
         this.textarea.value = text.substring(0, toggle_start) + toggle_lines.join('\n') + text.substring(toggle_end);
         this.textarea.selectionStart = new_selection_start;
         this.textarea.selectionEnd = new_selection_end;
+        window.requestAnimationFrame(() => {
+            this.storeScrollSize();
+            this.reflectScrollSizeToHighlightView();
+        });
         this.postWorkerUpdateText(false);
     }
 
@@ -319,6 +336,10 @@ export class Editor {
         const text = this.textarea.value;
         this.textarea.value = text.substring(0, start) + word + text.substring(end);
         this.textarea.selectionStart = this.textarea.selectionEnd = start + word.length;
+        window.requestAnimationFrame(() => {
+            this.storeScrollSize();
+            this.reflectScrollSizeToHighlightView();
+        });
         this.postWorkerUpdateText(false);
     }
 
@@ -340,14 +361,47 @@ export class Editor {
         this.insertWordToTextarea(insert_word, start, end);
     }
 
-    // private static getCursor(text: string, position: number): Cursor {
-    //     let row: number = 0;
-    //     let last: number = -1;
-    //     for (let i = -1; (i = text.indexOf('\n', i + 1)) !== -1 && i < position; last = i, row++);
-    //     return {row: row, column: position - last - 1};
-    // }
-
     // suggestion
+
+    private addSuggestionViewEvent() {
+        this.suggestionViewSelect.addEventListener('keydown', this.suggestionViewListenerKeydown);
+        document.addEventListener('click', this.suggestionViewListenerClick);
+    }
+
+    private removeSuggestionViewEvent() {
+        this.suggestionViewSelect.removeEventListener('keydown', this.suggestionViewListenerKeydown);
+        document.removeEventListener('click', this.suggestionViewListenerClick);
+    }
+
+    private handleSuggestionViewKeyDown(event: KeyboardEvent): void {
+        if (event.defaultPrevented || event.repeat) {
+            return;
+        } else if (event.key === 'Escape') {
+            this.hiddenSuggestionView();
+            this.textarea.focus();
+            event.preventDefault();
+        } else if (event.key === 'Backspace') {
+            this.hiddenSuggestionView();
+            this.textarea.focus();
+            event.preventDefault();
+            event.stopPropagation();
+        } else if (event.key === 'Enter') {
+            const word = this.getSelectSuggestionWord();
+            if (word) {
+                this.hiddenSuggestionView();
+                this.textarea.focus();
+                this.applySuggestionWordToTextarea(word);
+                event.preventDefault();
+            }
+        }
+    }
+
+    private handleSuggestionViewClick(event: MouseEvent):void {
+        if (this.suggestionViewContainer.contains(event.target as Node)) {
+        } else {
+            this.hiddenSuggestionView();
+        }
+    }
 
     private isVisibleSuggestionView(): boolean {
         return this.suggestionViewContainer.style.visibility === 'visible';
@@ -356,11 +410,17 @@ export class Editor {
     private visibleSuggestionView() {
         const caret = this.highlightViewCode.querySelector('span.caret') as HTMLSpanElement;
         if (caret) {
-            this.suggestionViewContainer.style.top = (caret.offsetTop + caret.offsetHeight - this.textarea.scrollTop) + 'px';
-            this.suggestionViewContainer.style.left = (caret.offsetLeft - this.textarea.scrollLeft) + 'px';
             if (!this.isVisibleSuggestionView()) {
                 this.suggestionViewContainer.style.visibility = 'visible';
             }
+        }
+    }
+
+    private reflectCaretPositionToSuggestionView() {
+        const caret = this.highlightViewCode.querySelector('span.caret') as HTMLSpanElement;
+        if (caret) {
+            this.suggestionViewContainer.style.top = (caret.offsetTop + caret.offsetHeight - this.textarea.scrollTop) + 'px';
+            this.suggestionViewContainer.style.left = (caret.offsetLeft - this.textarea.scrollLeft) + 'px';
         }
     }
 
@@ -386,9 +446,24 @@ export class Editor {
 
     // worker
 
+    private handleWorkerMessage(event: MessageEvent<any>):any {
+        // highlight view
+        this.highlightViewCode.innerHTML = event.data.highlightViewHtml;
+        // suggestion view
+        if (0 < event.data.suggestionViewHtml.length) {
+            this.suggestionViewSelect.innerHTML = event.data.suggestionViewHtml;
+            this.suggestionViewSelect.selectedIndex = -1;
+            this.visibleSuggestionView();
+            window.requestAnimationFrame(() => {
+                this.reflectCaretPositionToSuggestionView();
+            });
+        } else {
+            this.hiddenSuggestionView();
+        }
+    }
+
     private postWorkerUpdateText(suggestion: boolean) {
-        console.log('EVENT - postMessage');
-        this.editorWorker.port.postMessage({
+        this.worker.port.postMessage({
             suggestion: suggestion,
             selectionStart: this.textarea.selectionStart,
             selectionEnd: this.textarea.selectionEnd,
@@ -475,3 +550,9 @@ export class Editor {
         return element;
     }
 }
+// private static getCursor(text: string, position: number): Cursor {
+//     let row: number = 0;
+//     let last: number = -1;
+//     for (let i = -1; (i = text.indexOf('\n', i + 1)) !== -1 && i < position; last = i, row++);
+//     return {row: row, column: position - last - 1};
+// }
