@@ -12,7 +12,18 @@ class TagPromptNode(io.ComfyNode):
             inputs=[io.String.Input("text", multiline=True, extra_dict={"widgetType": "MY_STRING",})],
             outputs=[io.String.Output()]
         )
-
+    
+    @classmethod
+    def fingerprint_inputs(cls, text):
+        parse_text = text
+        try:
+            obj = json.loads(text)
+            if "text" in obj:
+                parse_text = obj["text"]
+        except json.JSONDecodeError as e:
+            pass
+        return parse_text
+    
     @classmethod
     def execute(cls, text) -> io.NodeOutput:
         parse_text = text
