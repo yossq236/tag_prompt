@@ -1,3 +1,4 @@
+import { isDelimiter } from './utils.ts';
 import EditorWorker from './editorWorker.ts?sharedworker&url';
 
 interface State {
@@ -220,13 +221,13 @@ export class Editor {
             return;
         } else if (event.ctrlKey || event.metaKey) {
             if (event.key === '/') {
-                this.toggleCommentToTextarea();
+                this.toggleComment();
                 event.preventDefault();
             }
         } else if (this.isVisibleSuggestionView()) {
             if (event.key === 'Tab') {
                 this.hiddenSuggestionView();
-                this.insertWordToTextarea('    ');
+                this.insertValue('    ');
                 event.preventDefault();
             } else if (event.key === 'Escape' || event.key === 'ArrowLeft' || event.key === 'ArrowRight' || event.key === 'ArrowUp') {
                 this.hiddenSuggestionView();
@@ -236,7 +237,7 @@ export class Editor {
             }
         } else {
             if (event.key === 'Tab') {
-                this.insertWordToTextarea('    ');
+                this.insertValue('    ');
                 event.preventDefault();
             }
         }
@@ -297,7 +298,7 @@ export class Editor {
         this.textareaScrollPosition.dirty = false;
     }
 
-    private toggleCommentToTextarea() {
+    private toggleComment() {
         const selection_start = this.textarea.selectionStart;
         const selection_end = this.textarea.selectionEnd;
         const text = this.textarea.value;
@@ -343,12 +344,12 @@ export class Editor {
         this.postWorkerUpdateText(false);
     }
 
-    private insertWordToTextarea(word: string, start?: number, end?: number) {
+    private insertValue(value: string, start?: number, end?: number) {
         start ??= this.textarea.selectionStart;
         end ??= this.textarea.selectionEnd;
         const text = this.textarea.value;
-        this.textarea.value = text.substring(0, start) + word + text.substring(end);
-        this.textarea.selectionStart = this.textarea.selectionEnd = start + word.length;
+        this.textarea.value = text.substring(0, start) + value + text.substring(end);
+        this.textarea.selectionStart = this.textarea.selectionEnd = start + value.length;
         this.requestTickAnimationFrame();
         this.postWorkerUpdateText(false);
     }
@@ -357,18 +358,10 @@ export class Editor {
         const text = this.textarea.value;
         let start = this.textarea.selectionStart;
         let end = this.textarea.selectionEnd;
-        for (let i = start - 1;0 <= i; i--) {
-            const c = text.charAt(i);
-            if (c === ' '  || c === ',' || c === '\n' || 255 < c.charCodeAt(0)) break;
-            start = i;
-        }
-        for (let i = end;i < text.length; i++) {
-            const c = text.charAt(i);
-            if (c === ' '  || c === ',' || c === '\n' || 255 < c.charCodeAt(0)) break;
-            end = i + 1;
-        }
+        for (let i = start - 1;0 <= i && !isDelimiter(text.charAt(i)); start = i--);
+        for (;end < text.length && !isDelimiter(text.charAt(end)); end++);
         const insert_word = word + ((text.charAt(end) !== ',') ? ',' : '');
-        this.insertWordToTextarea(insert_word, start, end);
+        this.insertValue(insert_word, start, end);
     }
 
     // suggestion

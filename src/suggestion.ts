@@ -1,5 +1,6 @@
 import { TAGS } from './tags.ts';
-import { MAX_SUGGESTION, ASCII_THRESHOLD } from './constants.ts';
+import { MAX_SUGGESTION } from './constants.ts';
+import { isDelimiter } from './utils.ts';
 
 interface Suggestion {
   approx: number;
@@ -30,10 +31,6 @@ function getWord(text: string, start: number): string {
     let word_end = start;
     for (let i = start - 1; 0 <= i && !isDelimiter(text.charAt(i)); word_start = i--);
     return text.substring(word_start, word_end);
-}
-
-function isDelimiter(c: string): boolean {
-    return (c === ' ') || (c === ',') || (c === '\n') || (ASCII_THRESHOLD <= c.charCodeAt(0));
 }
 
 function getValue(tag: string): string {
