@@ -4,11 +4,11 @@ import { Editor } from './editor';
 
 const extension: ComfyExtension = {
     name: 'yossq236.TagPromptNode',
-    getCustomWidgets: async (_app): Promise<any> => {
+    getCustomWidgets: async (_app) => {
         return {
             MY_STRING: (node, inputName, inputData, _app, _widgetName) => {
                 const editor = new Editor();
-                const widget = node.addDOMWidget(inputName, inputData[0], editor.element, {
+                const widget = (node as any).addDOMWidget(inputName, inputData[0], editor.element, {
                     getValue: () => {
                         return editor.state;
                     },
