@@ -28,6 +28,12 @@ interface SizeState {
 export class Editor {
     // containor
     private container: HTMLElement;
+    // body containor
+    private bodyContainer: HTMLElement;
+    // lineno view
+    private linenoView: HTMLElement;
+    private linenoViewPre: HTMLElement;
+    private linenoViewCode: HTMLElement;
     // highlight view
     private highlightView: HTMLElement;
     private highlightViewPre: HTMLElement;
@@ -56,12 +62,18 @@ export class Editor {
     constructor() {
         // create container
         this.container = this.createContainer();
+        // create lineno view
+        this.linenoView = this.createLinenoView(this.container);
+        this.linenoViewPre = this.createLinenoViewPre(this.linenoView);
+        this.linenoViewCode = this.createLinenoViewCode(this.linenoViewPre);
+        // create body container
+        this.bodyContainer = this.createBodyContainer(this.container);
         // create highlight view
-        this.highlightView = this.createHighlightView(this.container);
+        this.highlightView = this.createHighlightView(this.bodyContainer);
         this.highlightViewPre = this.createHighlightViewPre(this.highlightView);
         this.highlightViewCode = this.createHighlightViewCode(this.highlightViewPre);
         // create textarea
-        this.textarea = this.createTextarea(this.container);
+        this.textarea = this.createTextarea(this.bodyContainer);
         this.textareaListenerKeydown = e => this.handleTextareaKeyDown(e);
         this.textareaListenerInput = e => this.handleTextareaInput(e);
         this.textareaListenerScroll = e => this.handleTextareaScroll(e);
@@ -70,7 +82,7 @@ export class Editor {
         this.textareaClientSize = {width: 0, height: 0, dirty: false};
         this.textareaScrollPosition = {top: 0, left: 0, dirty: false};
         // create suggestion view
-        this.suggestionView = this.createSuggestionView(this.container);
+        this.suggestionView = this.createSuggestionView(this.bodyContainer);
         this.suggestionViewSelect = this.createSuggestionViewSelect(this.suggestionView);
         this.suggestionViewListenerKeydown = e => this.handleSuggestionViewKeyDown(e);
         this.suggestionViewListenerClick = e => this.handleSuggestionViewClick(e);
@@ -139,15 +151,21 @@ export class Editor {
         this.removeSuggestionViewEvent();
         // remove event textarea
         this.removeTextareaEvent();
-        // unmount suggestion view
+        // remove suggestion view
         this.suggestionViewSelect.parentElement?.removeChild(this.suggestionViewSelect);
         this.suggestionView.parentElement?.removeChild(this.suggestionView);
-        // unmount textarea
+        // remove textarea
         this.textarea.parentElement?.removeChild(this.textarea);
-        // unmount highlight view
+        // remove highlight view
         this.highlightViewCode.parentElement?.removeChild(this.highlightViewCode);
         this.highlightViewPre.parentElement?.removeChild(this.highlightViewPre);
         this.highlightView.parentElement?.removeChild(this.highlightView);
+        // remove body container
+        this.bodyContainer.parentElement?.removeChild(this.bodyContainer);
+        // remove highlight view
+        this.linenoViewCode.parentElement?.removeChild(this.linenoViewCode);
+        this.linenoViewPre.parentElement?.removeChild(this.linenoViewPre);
+        this.linenoView.parentElement?.removeChild(this.linenoView);
         // umount container
         this.container.parentElement?.removeChild(this.container);
     }
@@ -166,6 +184,10 @@ export class Editor {
         this.storeScrollSize();
         this.storeClientSize();
         this.storeScrollPosition();
+        // lineno view
+        this.reflectScrollSizeToLinenoView();
+        this.reflectClientSizeToLinenoView();
+        this.reflectScrollPositionToLinenoView();
         // highlight view
         this.reflectScrollSizeToHighlightView();
         this.reflectClientSizeToHighlightView();
@@ -174,6 +196,26 @@ export class Editor {
         this.reflectedScrollSize();
         this.reflectedClientSize();
         this.reflectedScrollPosition();
+    }
+
+    // lineno view
+
+    private reflectScrollSizeToLinenoView() {
+        if (this.textareaScrollSize.dirty) {
+            this.linenoViewPre.style.height = this.textareaScrollSize.height + 'px';
+        }
+    }
+
+    private reflectClientSizeToLinenoView() {
+        if (this.textareaClientSize.dirty) {
+            this.linenoView.style.height = this.textareaClientSize.height + 'px';
+        }
+    }
+
+    private reflectScrollPositionToLinenoView() {
+        if (this.textareaScrollPosition.dirty) {
+            this.linenoView.scrollTop = this.textareaScrollPosition.top;
+        }
     }
 
     // highlight view 
@@ -194,8 +236,8 @@ export class Editor {
 
     private reflectScrollPositionToHighlightView() {
         if (this.textareaScrollPosition.dirty) {
-            this.highlightView.scrollTop = this.textareaScrollPosition.top;
             this.highlightView.scrollLeft = this.textareaScrollPosition.left;
+            this.highlightView.scrollTop = this.textareaScrollPosition.top;
         }
     }
 
@@ -450,6 +492,8 @@ export class Editor {
     // worker
 
     private handleWorkerMessage(event: MessageEvent<any>):any {
+        // lineno view
+        this.linenoViewCode.innerHTML = event.data.linenoViewHtml;
         // highlight view
         this.highlightViewCode.innerHTML = event.data.highlightViewHtml;
         // suggestion view
@@ -478,13 +522,50 @@ export class Editor {
 
     private createContainer(): HTMLElement {
         const element = document.createElement('div');
-        element.style.position = 'relative';
+        element.style.display = 'grid';
+        element.style.gridTemplateColumns = 'auto 1fr';
+        element.style.gridTemplateRows = '1fr';
         element.style.width = '100%';
         element.style.height = '100%';
         element.style.fontSize = 'var(--comfy-textarea-font-size)';
         element.style.background = 'var(--comfy-input-bg)';
         element.style.color = 'var(--input-text)';
         element.style.lineHeight = 'normal';
+        return element;
+    }
+
+    private createBodyContainer(parent: HTMLElement): HTMLElement {
+        const element = document.createElement('div');
+        element.style.position = 'relative';
+        element.style.width = '100%';
+        element.style.height = '100%';
+        parent.appendChild(element);
+        return element;
+    }
+
+    private createLinenoView(parent: HTMLElement): HTMLElement {
+        const element = document.createElement('div');
+        element.style.position = 'relative';
+        element.style.width = 'fit-content';
+        element.style.overflowX = 'hidden';
+        element.style.overflowY = 'hidden';
+        parent.appendChild(element);
+        return element;
+    }
+
+    private createLinenoViewPre(parent: HTMLElement): HTMLElement {
+        const element = document.createElement('pre');
+        element.style.width = 'fit-content';
+        element.style.margin = '0';
+        element.style.border = 'none';
+        element.style.padding = '2px';
+        parent.appendChild(element);
+        return element;
+    }
+
+    private createLinenoViewCode(parent: HTMLElement): HTMLElement {
+        const element = document.createElement('code');
+        parent.appendChild(element);
         return element;
     }
 
