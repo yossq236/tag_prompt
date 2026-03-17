@@ -29,7 +29,7 @@ export class Editor {
     // containor
     private container: HTMLElement;
     // highlight view
-    private highlightViewContainer: HTMLElement;
+    private highlightView: HTMLElement;
     private highlightViewPre: HTMLElement;
     private highlightViewCode: HTMLElement;
     // textarea
@@ -42,7 +42,7 @@ export class Editor {
     private textareaClientSize: SizeState;
     private textareaScrollPosition: PositionState;
     // suggestion view
-    private suggestionViewContainer: HTMLElement;
+    private suggestionView: HTMLElement;
     private suggestionViewSelect: HTMLSelectElement;
     private suggestionViewListenerKeydown: (event: KeyboardEvent) => void;
     private suggestionViewListenerClick: (event: MouseEvent) => void;
@@ -57,8 +57,8 @@ export class Editor {
         // create container
         this.container = this.createContainer();
         // create highlight view
-        this.highlightViewContainer = this.createHighlightViewContainer(this.container);
-        this.highlightViewPre = this.createHighlightViewPre(this.highlightViewContainer);
+        this.highlightView = this.createHighlightView(this.container);
+        this.highlightViewPre = this.createHighlightViewPre(this.highlightView);
         this.highlightViewCode = this.createHighlightViewCode(this.highlightViewPre);
         // create textarea
         this.textarea = this.createTextarea(this.container);
@@ -70,8 +70,8 @@ export class Editor {
         this.textareaClientSize = {width: 0, height: 0, dirty: false};
         this.textareaScrollPosition = {top: 0, left: 0, dirty: false};
         // create suggestion view
-        this.suggestionViewContainer = this.createSuggestionViewContainer(this.container);
-        this.suggestionViewSelect = this.createSuggestionViewSelect(this.suggestionViewContainer);
+        this.suggestionView = this.createSuggestionView(this.container);
+        this.suggestionViewSelect = this.createSuggestionViewSelect(this.suggestionView);
         this.suggestionViewListenerKeydown = e => this.handleSuggestionViewKeyDown(e);
         this.suggestionViewListenerClick = e => this.handleSuggestionViewClick(e);
         // create worker
@@ -141,13 +141,13 @@ export class Editor {
         this.removeTextareaEvent();
         // unmount suggestion view
         this.suggestionViewSelect.parentElement?.removeChild(this.suggestionViewSelect);
-        this.suggestionViewContainer.parentElement?.removeChild(this.suggestionViewContainer);
+        this.suggestionView.parentElement?.removeChild(this.suggestionView);
         // unmount textarea
         this.textarea.parentElement?.removeChild(this.textarea);
         // unmount highlight view
         this.highlightViewCode.parentElement?.removeChild(this.highlightViewCode);
         this.highlightViewPre.parentElement?.removeChild(this.highlightViewPre);
-        this.highlightViewContainer.parentElement?.removeChild(this.highlightViewContainer);
+        this.highlightView.parentElement?.removeChild(this.highlightView);
         // umount container
         this.container.parentElement?.removeChild(this.container);
     }
@@ -187,15 +187,15 @@ export class Editor {
 
     private reflectClientSizeToHighlightView() {
         if (this.textareaClientSize.dirty) {
-            this.highlightViewContainer.style.width = this.textareaClientSize.width + 'px';
-            this.highlightViewContainer.style.height = this.textareaClientSize.height + 'px';
+            this.highlightView.style.width = this.textareaClientSize.width + 'px';
+            this.highlightView.style.height = this.textareaClientSize.height + 'px';
         }
     }
 
     private reflectScrollPositionToHighlightView() {
         if (this.textareaScrollPosition.dirty) {
-            this.highlightViewContainer.scrollTop = this.textareaScrollPosition.top;
-            this.highlightViewContainer.scrollLeft = this.textareaScrollPosition.left;
+            this.highlightView.scrollTop = this.textareaScrollPosition.top;
+            this.highlightView.scrollLeft = this.textareaScrollPosition.left;
         }
     }
 
@@ -400,21 +400,21 @@ export class Editor {
     }
 
     private handleSuggestionViewClick(event: MouseEvent):void {
-        if (this.suggestionViewContainer.contains(event.target as Node)) {
+        if (this.suggestionView.contains(event.target as Node)) {
         } else {
             this.hiddenSuggestionView();
         }
     }
 
     private isVisibleSuggestionView(): boolean {
-        return this.suggestionViewContainer.style.visibility === 'visible';
+        return this.suggestionView.style.visibility === 'visible';
     }
 
     private visibleSuggestionView() {
         const caret = this.highlightViewCode.querySelector('span.caret') as HTMLSpanElement;
         if (caret) {
             if (!this.isVisibleSuggestionView()) {
-                this.suggestionViewContainer.style.visibility = 'visible';
+                this.suggestionView.style.visibility = 'visible';
             }
         }
     }
@@ -422,14 +422,14 @@ export class Editor {
     private reflectCaretPositionToSuggestionView() {
         const caret = this.highlightViewCode.querySelector('span.caret') as HTMLSpanElement;
         if (caret) {
-            this.suggestionViewContainer.style.top = (caret.offsetTop + caret.offsetHeight - this.textarea.scrollTop) + 'px';
-            this.suggestionViewContainer.style.left = (caret.offsetLeft - this.textarea.scrollLeft) + 'px';
+            this.suggestionView.style.top = (caret.offsetTop + caret.offsetHeight - this.textarea.scrollTop) + 'px';
+            this.suggestionView.style.left = (caret.offsetLeft - this.textarea.scrollLeft) + 'px';
         }
     }
 
     private hiddenSuggestionView() {
         if (this.isVisibleSuggestionView()) {
-            this.suggestionViewContainer.style.visibility = 'hidden';
+            this.suggestionView.style.visibility = 'hidden';
         }
     }
 
@@ -481,12 +481,43 @@ export class Editor {
         element.style.position = 'relative';
         element.style.width = '100%';
         element.style.height = '100%';
+        element.style.fontSize = 'var(--comfy-textarea-font-size)';
+        element.style.background = 'var(--comfy-input-bg)';
+        element.style.color = 'var(--input-text)';
+        element.style.lineHeight = 'normal';
+        return element;
+    }
+
+    private createHighlightView(parent: HTMLElement): HTMLElement {
+        const element = document.createElement('div');
+        element.style.position = 'absolute';
+        element.style.left = '0';
+        element.style.top = '0';
+        element.style.overflowX = 'hidden';
+        element.style.overflowY = 'hidden';
+        parent.appendChild(element);
+        return element;
+    }
+
+    private createHighlightViewPre(parent: HTMLElement): HTMLElement {
+        const element = document.createElement('pre');
+        element.style.margin = '0';
+        element.style.border = 'none';
+        element.style.padding = '2px';
+        parent.appendChild(element);
+        return element;
+    }
+
+    private createHighlightViewCode(parent: HTMLElement): HTMLElement {
+        const element = document.createElement('code');
+        parent.appendChild(element);
         return element;
     }
 
     private createTextarea(parent: HTMLElement):HTMLTextAreaElement {
         const element = document.createElement('textarea');
         element.className = 'comfy-multiline-input';
+        element.style.position = 'absolute';
         element.style.width = '100%';
         element.style.height = '100%';
         element.style.overflowX = 'auto';
@@ -499,38 +530,7 @@ export class Editor {
         return element;
     }
 
-    private createHighlightViewContainer(parent: HTMLElement): HTMLElement {
-        const element = document.createElement('div');
-        element.style.position = 'absolute';
-        element.style.left = '0';
-        element.style.top = '0';
-        element.style.overflowX = 'hidden';
-        element.style.overflowY = 'hidden';
-        element.style.zIndex = '-1';
-        parent.appendChild(element);
-        return element;
-    }
-
-    private createHighlightViewPre(parent: HTMLElement): HTMLElement {
-        const element = document.createElement('pre');
-        element.style.margin = '0';
-        element.style.border = 'none';
-        element.style.padding = '2px';
-        element.style.fontSize = 'var(--comfy-textarea-font-size)';
-        element.style.background = 'var(--comfy-input-bg)';
-        element.style.color = 'var(--input-text)';
-        element.style.lineHeight = 'normal';
-        parent.appendChild(element);
-        return element;
-    }
-
-    private createHighlightViewCode(parent: HTMLElement): HTMLElement {
-        const element = document.createElement('code');
-        parent.appendChild(element);
-        return element;
-    }
-
-    private createSuggestionViewContainer(parent: HTMLElement): HTMLElement {
+    private createSuggestionView(parent: HTMLElement): HTMLElement {
         const element = document.createElement('div');
         element.style.position = 'absolute';
         element.style.left = '0';

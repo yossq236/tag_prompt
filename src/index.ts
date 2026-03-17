@@ -16,10 +16,10 @@ const extension: ComfyExtension = {
                         editor.state = newValue;
                     },
                 });
-                const originalOnRemoved = node.onRemoved;
-                node.onRemoved = function() {
+                const originalOnRemove = widget.onRemove;
+                widget.onRemove = () => {
                     editor.unmount();
-                    originalOnRemoved?.call(this);
+                    originalOnRemove?.call(widget);
                 };
                 return {widget: widget, minWidth: 400, minHeight: 300};
             }
