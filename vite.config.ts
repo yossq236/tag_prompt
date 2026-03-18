@@ -18,8 +18,8 @@ export default defineConfig({
                 globals: {'/scripts/app.js': 'app'},
             }
         },
-        //minify: 'terser',
-        minify: false,
+        minify: 'terser',
+        // minify: false,
     },
     worker: {
         format: 'es',
