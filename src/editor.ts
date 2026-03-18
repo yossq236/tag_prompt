@@ -318,19 +318,8 @@ export class Editor {
         const old_row_start = this.textareaCursorStart.row;
         const old_row_end = (this.textareaCursorStart.row < this.textareaCursorEnd.row && this.textareaCursorEnd.column === 0) ? this.textareaCursorEnd.row - 1 : this.textareaCursorEnd.row;
         if (new_row_start !== old_row_start || new_row_end !== old_row_end) {
-            const spans = this.linenoViewCode.querySelectorAll('span');
-            for (let i = old_row_start; i <= old_row_end; i++) {
-                const classList = spans[i].classList;
-                if (classList.contains(EditorStyle.selected)) {
-                    classList.remove(EditorStyle.selected);
-                }
-            }
-            for (let i = new_row_start; i <= new_row_end; i++) {
-                const classList = spans[i].classList;
-                if (!classList.contains(EditorStyle.selected)) {
-                    classList.add(EditorStyle.selected);
-                }
-            }
+            this.linenoViewCode.querySelectorAll('span:nth-of-type(n+'+(old_row_start+1)+'):nth-of-type(-n+'+(old_row_end+1)+')').forEach(e => e.classList.toggle(EditorStyle.selected, false));
+            this.linenoViewCode.querySelectorAll('span:nth-of-type(n+'+(new_row_start+1)+'):nth-of-type(-n+'+(new_row_end+1)+')').forEach(e => e.classList.toggle(EditorStyle.selected, true));
             this.textareaCursorStart = cursor_start;
             this.textareaCursorEnd = cursor_end;
         }

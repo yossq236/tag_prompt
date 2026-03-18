@@ -15,11 +15,13 @@
 .container:has(textarea:focus-visible) {
     outline: -webkit-focus-ring-color auto 1px;
 }
+
 .body-container {
     position: relative;
     width: 100%;
     height: 100%;
 }
+
 .lineno-view {
     position: relative;
     width: fit-content;
@@ -34,6 +36,10 @@
     width: fit-content;
     min-width: 8px;
 }
+.lineno-view span.selected {
+    background: gray;
+}
+
 .highlight-view {
     position: absolute;
     left: 0;
@@ -47,6 +53,7 @@
 .highlight-view > pre {
     margin: 0;
 }
+
 .body-container > textarea {
     position: absolute;
     width: 100%;
@@ -61,6 +68,7 @@
     outline: none;
     padding: 0;
 }
+
 .suggestion-view {
     position: absolute;
     left: 0;
@@ -74,7 +82,4 @@
     background: var(--comfy-input-bg);
     color: var(--input-text);
     appearance: none;
-}
-.selected {
-    background: gray;
 }
