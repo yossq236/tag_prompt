@@ -4,6 +4,13 @@ import { Editor } from './editor';
 
 const extension: ComfyExtension = {
     name: 'yossq236.TagPromptNode',
+    setup: async (_app) => {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.type = 'text/css';
+        link.href = '/extensions/tag_prompt/assets/index.css';
+        document.head.appendChild(link);
+    },
     getCustomWidgets: async (_app) => {
         return {
             MY_STRING: (node, inputName, inputData, _app, _widgetName) => {

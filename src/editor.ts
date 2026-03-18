@@ -1,5 +1,6 @@
 import { isDelimiter } from './utils.ts';
 import EditorWorker from './editorWorker.ts?sharedworker&url';
+import EditorStyle from './editor.module.css';
 
 interface State {
     text: string;
@@ -7,10 +8,6 @@ interface State {
     selectionEnd: number;
     scrollTop: number;
     scrollLeft: number;
-}
-
-function isValidState(obj: unknown): obj is State {
-    return (obj !== null) && (typeof obj === 'object') && ('text' in obj) && ('selectionStart' in obj) && ('selectionEnd' in obj) && ('scrollTop' in obj) && ('scrollLeft' in obj);
 }
 
 interface PositionState {
@@ -23,6 +20,10 @@ interface SizeState {
     width: number;
     height: number;
     dirty: boolean;
+}
+
+function isValidState(obj: unknown): obj is State {
+    return (obj !== null) && (typeof obj === 'object') && ('text' in obj) && ('selectionStart' in obj) && ('selectionEnd' in obj) && ('scrollTop' in obj) && ('scrollLeft' in obj);
 }
 
 export class Editor {
@@ -522,43 +523,26 @@ export class Editor {
 
     private createContainer(): HTMLElement {
         const element = document.createElement('div');
-        element.style.display = 'grid';
-        element.style.gridTemplateColumns = 'auto 1fr';
-        element.style.gridTemplateRows = '1fr';
-        element.style.width = '100%';
-        element.style.height = '100%';
-        element.style.fontSize = 'var(--comfy-textarea-font-size)';
-        element.style.background = 'var(--comfy-input-bg)';
-        element.style.color = 'var(--input-text)';
-        element.style.lineHeight = 'normal';
+        element.className = EditorStyle.container;
         return element;
     }
 
     private createBodyContainer(parent: HTMLElement): HTMLElement {
         const element = document.createElement('div');
-        element.style.position = 'relative';
-        element.style.width = '100%';
-        element.style.height = '100%';
+        element.className = EditorStyle.bodyContainer;
         parent.appendChild(element);
         return element;
     }
 
     private createLinenoView(parent: HTMLElement): HTMLElement {
         const element = document.createElement('div');
-        element.style.position = 'relative';
-        element.style.width = 'fit-content';
-        element.style.overflowX = 'hidden';
-        element.style.overflowY = 'hidden';
+        element.className = EditorStyle.linenoView;
         parent.appendChild(element);
         return element;
     }
 
     private createLinenoViewPre(parent: HTMLElement): HTMLElement {
         const element = document.createElement('pre');
-        element.style.width = 'fit-content';
-        element.style.margin = '0';
-        element.style.border = 'none';
-        element.style.padding = '2px';
         parent.appendChild(element);
         return element;
     }
@@ -571,20 +555,13 @@ export class Editor {
 
     private createHighlightView(parent: HTMLElement): HTMLElement {
         const element = document.createElement('div');
-        element.style.position = 'absolute';
-        element.style.left = '0';
-        element.style.top = '0';
-        element.style.overflowX = 'hidden';
-        element.style.overflowY = 'hidden';
+        element.className = EditorStyle.highlightView;
         parent.appendChild(element);
         return element;
     }
 
     private createHighlightViewPre(parent: HTMLElement): HTMLElement {
         const element = document.createElement('pre');
-        element.style.margin = '0';
-        element.style.border = 'none';
-        element.style.padding = '2px';
         parent.appendChild(element);
         return element;
     }
@@ -598,27 +575,13 @@ export class Editor {
     private createTextarea(parent: HTMLElement):HTMLTextAreaElement {
         const element = document.createElement('textarea');
         element.className = 'comfy-multiline-input';
-        element.style.position = 'absolute';
-        element.style.width = '100%';
-        element.style.height = '100%';
-        element.style.overflowX = 'auto';
-        element.style.overflowY = 'auto';
-        element.style.whiteSpace = 'nowrap';
-        element.style.background = 'transparent';
-        element.style.color = 'transparent';
-        element.style.caretColor = 'rgb(from var(--comfy-input-bg) calc(255 - r) calc(255 - g) calc(255 - b))';
         parent.appendChild(element);
         return element;
     }
 
     private createSuggestionView(parent: HTMLElement): HTMLElement {
         const element = document.createElement('div');
-        element.style.position = 'absolute';
-        element.style.left = '0';
-        element.style.top = '0';
-        element.style.width = 'fit-content';
-        element.style.height = 'auto';
-        element.style.visibility = 'hidden';
+        element.className = EditorStyle.suggestionView;
         parent.appendChild(element);
         return element;
     }
@@ -626,10 +589,6 @@ export class Editor {
     private createSuggestionViewSelect(parent: HTMLElement): HTMLSelectElement {
         const element = document.createElement('select');
         element.setAttribute('size', '10');
-        element.style.fontSize = 'var(--comfy-textarea-font-size)';
-        element.style.background = 'var(--comfy-input-bg)';
-        element.style.color = 'var(--input-text)';
-        element.style.appearance = 'none';
         parent.appendChild(element);
         return element;
     }

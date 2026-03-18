@@ -9,6 +9,7 @@ export default defineConfig({
             entry: './src/index.ts',
             name: 'index',
             formats: ['es'],
+            cssFileName: 'assets/index'
         },
         rollupOptions: {
             external: ['/scripts/app.js'],
@@ -17,7 +18,8 @@ export default defineConfig({
                 globals: {'/scripts/app.js': 'app'},
             }
         },
-        minify: 'terser',
+        //minify: 'terser',
+        minify: false,
     },
     worker: {
         format: 'es',
@@ -25,6 +27,11 @@ export default defineConfig({
             output: {
                 entryFileNames: `assets/[name].js`,
             },
+        },
+    },
+    css: {
+        modules: {
+            localsConvention: 'camelCaseOnly',
         },
     },
 });
