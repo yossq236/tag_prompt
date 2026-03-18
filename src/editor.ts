@@ -320,10 +320,16 @@ export class Editor {
         if (new_row_start !== old_row_start || new_row_end !== old_row_end) {
             const spans = this.linenoViewCode.querySelectorAll('span');
             for (let i = old_row_start; i <= old_row_end; i++) {
-                spans[i].className = '';
+                const classList = spans[i].classList;
+                if (classList.contains(EditorStyle.selected)) {
+                    classList.remove(EditorStyle.selected);
+                }
             }
             for (let i = new_row_start; i <= new_row_end; i++) {
-                spans[i].className = EditorStyle.selected;
+                const classList = spans[i].classList;
+                if (!classList.contains(EditorStyle.selected)) {
+                    classList.add(EditorStyle.selected);
+                }
             }
             this.textareaCursorStart = cursor_start;
             this.textareaCursorEnd = cursor_end;
