@@ -1,4 +1,4 @@
-._container_6fm8i_1 {
+._container_141ns_1 {
     display: grid;
     grid-template-columns: auto 1fr;
     grid-template-rows: 1fr;
@@ -12,15 +12,15 @@
     outline: none;
     padding: 2px;
 }
-._container_6fm8i_1:has(textarea:focus-visible) {
+._container_141ns_1:has(textarea:focus-visible) {
     outline: -webkit-focus-ring-color auto 1px;
 }
-._body-container_6fm8i_35 {
+._body-container_141ns_35 {
     position: relative;
     width: 100%;
     height: 100%;
 }
-._lineno-view_6fm8i_45 {
+._lineno-view_141ns_45 {
     position: relative;
     width: fit-content;
     overflow-x: hidden;
@@ -29,11 +29,12 @@
     border: none;
     padding: 0;
 }
-._lineno-view_6fm8i_45 > pre {
+._lineno-view_141ns_45 > pre {
     margin: 0;
     width: fit-content;
+    min-width: 8px;
 }
-._highlight-view_6fm8i_71 {
+._highlight-view_141ns_73 {
     position: absolute;
     left: 0;
     top: 0;
@@ -43,10 +44,10 @@
     border: none;
     padding: 0;
 }
-._highlight-view_6fm8i_71 > pre {
+._highlight-view_141ns_73 > pre {
     margin: 0;
 }
-._body-container_6fm8i_35 > textarea {
+._body-container_141ns_35 > textarea {
     position: absolute;
     width: 100%;
     height: 100%;
@@ -60,7 +61,7 @@
     outline: none;
     padding: 0;
 }
-._suggestion-view_6fm8i_125 {
+._suggestion-view_141ns_127 {
     position: absolute;
     left: 0;
     top: 0;
@@ -68,9 +69,12 @@
     height: auto;
     visibility: hidden;
 }
-._suggestion-view_6fm8i_125 > select {
+._suggestion-view_141ns_127 > select {
     font-size: var(--comfy-textarea-font-size);
     background: var(--comfy-input-bg);
     color: var(--input-text);
     appearance: none;
+}
+._selected_141ns_155 {
+    background: gray;
 }/*$vite$:1*/

@@ -3,15 +3,25 @@ import { app } from "/scripts/app.js";
 function isDelimiter(c) {
 	return c === " " || c === "," || c === "\n" || 256 <= c.charCodeAt(0);
 }
+function getCursor(text, position) {
+	let row = 0;
+	let last = -1;
+	for (let i = -1; (i = text.indexOf("\n", i + 1)) !== -1 && i < position; last = i, row++);
+	return {
+		row,
+		column: position - last - 1
+	};
+}
 //#endregion
 //#region src/editorWorker.ts?sharedworker&url
 var editorWorker_default = "/extensions/tag_prompt/assets/editorWorker.js";
 var editor_module_default = {
-	container: "_container_6fm8i_1",
-	bodyContainer: "_body-container_6fm8i_35",
-	linenoView: "_lineno-view_6fm8i_45",
-	highlightView: "_highlight-view_6fm8i_71",
-	suggestionView: "_suggestion-view_6fm8i_125"
+	container: "_container_141ns_1",
+	bodyContainer: "_body-container_141ns_35",
+	linenoView: "_lineno-view_141ns_45",
+	highlightView: "_highlight-view_141ns_73",
+	suggestionView: "_suggestion-view_141ns_127",
+	selected: "_selected_141ns_155"
 };
 //#endregion
 //#region src/editor.ts
@@ -32,9 +42,12 @@ var Editor = class {
 	textareaListenerInput;
 	textareaListenerScroll;
 	textareaResizeObserver;
+	textareaListenerSelectionchange;
 	textareaScrollSize;
 	textareaClientSize;
 	textareaScrollPosition;
+	textareaCursorStart;
+	textareaCursorEnd;
 	suggestionView;
 	suggestionViewSelect;
 	suggestionViewListenerKeydown;
@@ -55,6 +68,7 @@ var Editor = class {
 		this.textareaListenerInput = (e) => this.handleTextareaInput(e);
 		this.textareaListenerScroll = (e) => this.handleTextareaScroll(e);
 		this.textareaResizeObserver = new ResizeObserver((e) => this.handleTextareaReSize(e));
+		this.textareaListenerSelectionchange = (e) => this.handleTextareaSelectionchange(e);
 		this.textareaScrollSize = {
 			width: 0,
 			height: 0,
@@ -69,6 +83,14 @@ var Editor = class {
 			top: 0,
 			left: 0,
 			dirty: false
+		};
+		this.textareaCursorStart = {
+			column: 0,
+			row: 0
+		};
+		this.textareaCursorEnd = {
+			column: 0,
+			row: 0
 		};
 		this.suggestionView = this.createSuggestionView(this.bodyContainer);
 		this.suggestionViewSelect = this.createSuggestionViewSelect(this.suggestionView);
@@ -181,6 +203,7 @@ var Editor = class {
 		this.textarea.addEventListener("input", this.textareaListenerInput);
 		this.textarea.addEventListener("scroll", this.textareaListenerScroll);
 		this.textareaResizeObserver.observe(this.textarea);
+		this.textarea.addEventListener("selectionchange", this.textareaListenerSelectionchange);
 	}
 	removeTextareaEvent() {
 		this.textarea.removeEventListener("keydown", this.textareaListenerKeydown);
@@ -188,6 +211,7 @@ var Editor = class {
 		this.textarea.removeEventListener("scroll", this.textareaListenerScroll);
 		this.textareaResizeObserver.unobserve(this.textarea);
 		this.textareaResizeObserver.disconnect();
+		this.textarea.removeEventListener("selectionchange", this.textareaListenerSelectionchange);
 	}
 	handleTextareaKeyDown(event) {
 		if (event.defaultPrevented || event.repeat) return;
@@ -220,6 +244,24 @@ var Editor = class {
 	}
 	handleTextareaReSize(_entries) {
 		this.requestTickAnimationFrame();
+	}
+	handleTextareaSelectionchange(_event) {
+		const start = this.textarea.selectionStart;
+		const end = this.textarea.selectionEnd;
+		const text = this.textarea.value;
+		const cursor_start = getCursor(text, start);
+		const cursor_end = getCursor(text, end);
+		const new_row_start = cursor_start.row;
+		const new_row_end = cursor_start.row < cursor_end.row && cursor_end.column === 0 ? cursor_end.row - 1 : cursor_end.row;
+		const old_row_start = this.textareaCursorStart.row;
+		const old_row_end = this.textareaCursorStart.row < this.textareaCursorEnd.row && this.textareaCursorEnd.column === 0 ? this.textareaCursorEnd.row - 1 : this.textareaCursorEnd.row;
+		if (new_row_start !== old_row_start || new_row_end !== old_row_end) {
+			const spans = this.linenoViewCode.querySelectorAll("span");
+			for (let i = old_row_start; i <= old_row_end; i++) spans[i].className = "";
+			for (let i = new_row_start; i <= new_row_end; i++) spans[i].className = editor_module_default.selected;
+			this.textareaCursorStart = cursor_start;
+			this.textareaCursorEnd = cursor_end;
+		}
 	}
 	storeScrollSize() {
 		const width = this.textarea.scrollWidth;

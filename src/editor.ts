@@ -1,4 +1,4 @@
-import { isDelimiter } from './utils.ts';
+import { isDelimiter, type Cursor, getCursor } from './utils.ts';
 import EditorWorker from './editorWorker.ts?sharedworker&url';
 import EditorStyle from './editor.module.css';
 
@@ -45,9 +45,12 @@ export class Editor {
     private textareaListenerInput: (event: Event) => void;
     private textareaListenerScroll: (event: Event) => void;
     private textareaResizeObserver: ResizeObserver;
+    private textareaListenerSelectionchange: (event: Event) => void;
     private textareaScrollSize: SizeState;
     private textareaClientSize: SizeState;
     private textareaScrollPosition: PositionState;
+    private textareaCursorStart: Cursor;
+    private textareaCursorEnd: Cursor;
     // suggestion view
     private suggestionView: HTMLElement;
     private suggestionViewSelect: HTMLSelectElement;
@@ -79,9 +82,12 @@ export class Editor {
         this.textareaListenerInput = e => this.handleTextareaInput(e);
         this.textareaListenerScroll = e => this.handleTextareaScroll(e);
         this.textareaResizeObserver = new ResizeObserver(e => this.handleTextareaReSize(e));
+        this.textareaListenerSelectionchange = e => this.handleTextareaSelectionchange(e);
         this.textareaScrollSize = {width: 0, height: 0, dirty: false};
         this.textareaClientSize = {width: 0, height: 0, dirty: false};
         this.textareaScrollPosition = {top: 0, left: 0, dirty: false};
+        this.textareaCursorStart = { column: 0, row: 0 };
+        this.textareaCursorEnd = { column: 0, row: 0 };
         // create suggestion view
         this.suggestionView = this.createSuggestionView(this.bodyContainer);
         this.suggestionViewSelect = this.createSuggestionViewSelect(this.suggestionView);
@@ -249,6 +255,7 @@ export class Editor {
         this.textarea.addEventListener('input', this.textareaListenerInput);
         this.textarea.addEventListener('scroll', this.textareaListenerScroll);
         this.textareaResizeObserver.observe(this.textarea);
+        this.textarea.addEventListener('selectionchange', this.textareaListenerSelectionchange);
     }
 
     private removeTextareaEvent() {
@@ -257,6 +264,7 @@ export class Editor {
         this.textarea.removeEventListener('scroll', this.textareaListenerScroll);
         this.textareaResizeObserver.unobserve(this.textarea);
         this.textareaResizeObserver.disconnect();
+        this.textarea.removeEventListener('selectionchange', this.textareaListenerSelectionchange);
     }
 
     private handleTextareaKeyDown(event: KeyboardEvent): void {
@@ -297,6 +305,29 @@ export class Editor {
 
     private handleTextareaReSize(_entries: Array<ResizeObserverEntry>): void {
         this.requestTickAnimationFrame();
+    }
+
+    private handleTextareaSelectionchange(_event: Event): void {
+        const start = this.textarea.selectionStart;
+        const end = this.textarea.selectionEnd;
+        const text = this.textarea.value;
+        const cursor_start = getCursor(text, start);
+        const cursor_end = getCursor(text, end);
+        const new_row_start = cursor_start.row;
+        const new_row_end = (cursor_start.row < cursor_end.row && cursor_end.column === 0) ? cursor_end.row - 1 : cursor_end.row;
+        const old_row_start = this.textareaCursorStart.row;
+        const old_row_end = (this.textareaCursorStart.row < this.textareaCursorEnd.row && this.textareaCursorEnd.column === 0) ? this.textareaCursorEnd.row - 1 : this.textareaCursorEnd.row;
+        if (new_row_start !== old_row_start || new_row_end !== old_row_end) {
+            const spans = this.linenoViewCode.querySelectorAll('span');
+            for (let i = old_row_start; i <= old_row_end; i++) {
+                spans[i].className = '';
+            }
+            for (let i = new_row_start; i <= new_row_end; i++) {
+                spans[i].className = EditorStyle.selected;
+            }
+            this.textareaCursorStart = cursor_start;
+            this.textareaCursorEnd = cursor_end;
+        }
     }
 
     private storeScrollSize() {
@@ -593,9 +624,3 @@ export class Editor {
         return element;
     }
 }
-// private static getCursor(text: string, position: number): Cursor {
-//     let row: number = 0;
-//     let last: number = -1;
-//     for (let i = -1; (i = text.indexOf('\n', i + 1)) !== -1 && i < position; last = i, row++);
-//     return {row: row, column: position - last - 1};
-// }
