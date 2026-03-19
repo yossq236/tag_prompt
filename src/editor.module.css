@@ -1,85 +1,118 @@
+/* container */
 .container {
     display: grid;
     grid-template-columns: auto 1fr;
     grid-template-rows: 1fr;
+
     width: 100%;
     height: 100%;
-    font-size: var(--comfy-textarea-font-size);
-    background: var(--comfy-input-bg);
-    color: var(--input-text);
-    line-height: normal;
+
     margin: 0;
     outline: none;
     padding: 2px;
-}
-.container:has(textarea:focus-visible) {
-    outline: -webkit-focus-ring-color auto 1px;
+
+    font-size: var(--comfy-textarea-font-size);
+    line-height: normal;
+
+    background: var(--comfy-input-bg);
+    color: var(--input-text);
 }
 
+/* container focus-visible */
+.container:has(textarea:focus-visible) {
+    outline: -webkit-focus-ring-color auto 1px;
+
+    .lineno-view {
+        span.selected {
+            background: gray;
+        }
+    }
+}
+
+/* lineno view */
+.lineno-view {
+    position: relative;
+
+    width: fit-content;
+    /* height: script control */
+
+    margin: 0;
+    border: none;
+    padding: 0;
+
+    overflow-x: hidden;
+    overflow-y: hidden;
+
+    pre {
+        width: fit-content;
+        min-width: 8px;
+        /* height: script control */
+
+        margin: 0;
+    }
+}
+
+/* body container */
 .body-container {
     position: relative;
     width: 100%;
     height: 100%;
+
+    /* textarea */
+    textarea {
+        position: absolute;
+
+        width: 100%;
+        height: 100%;
+
+        margin: 0;
+        outline: none;
+        padding: 0;
+
+        overflow-x: auto;
+        overflow-y: auto;
+        white-space: nowrap;
+
+        background: transparent;
+        color: transparent;
+        caret-color: rgb(from var(--comfy-input-bg) calc(255 - r) calc(255 - g) calc(255 - b));
+    }
 }
 
-.lineno-view {
-    position: relative;
-    width: fit-content;
-    overflow-x: hidden;
-    overflow-y: hidden;
-    margin: 0;
-    border: none;
-    padding: 0;
-}
-.lineno-view > pre {
-    margin: 0;
-    width: fit-content;
-    min-width: 8px;
-}
-.lineno-view span.selected {
-    background: gray;
-}
-
+/* highlight view */
 .highlight-view {
     position: absolute;
-    left: 0;
-    top: 0;
-    overflow-x: hidden;
-    overflow-y: hidden;
+
+    /* width: script control */
+    /* height: script control */
+
     margin: 0;
     border: none;
     padding: 0;
-}
-.highlight-view > pre {
-    margin: 0;
+
+    overflow-x: hidden;
+    overflow-y: hidden;
+
+    pre {
+        /* width: script control */
+        /* height: script control */
+
+        margin: 0;
+    }
 }
 
-.body-container > textarea {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    overflow-x: auto;
-    overflow-y: auto;
-    white-space: nowrap;
-    background: transparent;
-    color: transparent;
-    caret-color: rgb(from var(--comfy-input-bg) calc(255 - r) calc(255 - g) calc(255 - b));
-    margin: 0;
-    outline: none;
-    padding: 0;
-}
-
+/* suggestion view */
 .suggestion-view {
     position: absolute;
-    left: 0;
-    top: 0;
+
     width: fit-content;
     height: auto;
+
     visibility: hidden;
-}
-.suggestion-view > select {
-    font-size: var(--comfy-textarea-font-size);
-    background: var(--comfy-input-bg);
-    color: var(--input-text);
-    appearance: none;
+    
+    select {
+        font-size: var(--comfy-textarea-font-size);
+        background: var(--comfy-input-bg);
+        color: var(--input-text);
+    }
 }
