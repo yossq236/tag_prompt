@@ -34,6 +34,11 @@ interface RowPosition {
     bottom: number;
 }
 
+interface HeaderViewState {
+    content: string;
+    dirty: boolean;
+}
+
 interface LinenoViewState {
     content: string;
     rows: Array<RowPosition>;
@@ -67,13 +72,20 @@ function getCursor(text: string, position: number): Cursor {
 export class Editor {
     // containor
     private container: HTMLElement;
-    // body containor
-    private bodyContainer: HTMLElement;
+    // space view
+    private spaceView: HTMLElement;
+    // header view
+    private headerView: HTMLElement;
+    private headerViewSelect: HTMLSelectElement;
+    private headerViewListenerChange: (event: Event) => void;
+    private headerViewState: HeaderViewState;
     // lineno view
     private linenoView: HTMLElement;
     private linenoViewPre: HTMLElement;
     private linenoViewCode: HTMLElement;
     private linenoViewState: LinenoViewState;
+    // body containor
+    private bodyContainer: HTMLElement;
     // highlight view
     private highlightView: HTMLElement;
     private highlightViewPre: HTMLElement;
@@ -106,6 +118,13 @@ export class Editor {
     constructor() {
         // create container
         this.container = this.createContainer();
+        // create space view
+        this.spaceView = this.createSpaceView(this.container);
+        // create header view
+        this.headerView = this.createHeaderView(this.container);
+        this.headerViewSelect = this.createHeaderViewSelect(this.headerView);
+        this.headerViewListenerChange = e => this.handleHeaderViewChange(e);
+        this.headerViewState = {content: '', dirty: false};
         // create lineno view
         this.linenoView = this.createLinenoView(this.container);
         this.linenoViewPre = this.createLinenoViewPre(this.linenoView);
@@ -140,6 +159,8 @@ export class Editor {
         this.worker.port.onmessage = e => this.handleWorkerMessage(e);
         // create animation frame
         this.tickAnimationFrameID = 0;
+        // add event header view
+        this.addHeaderViewEvent();
         // add event textarea
         this.addTextareaEvent();
         // add event suggestion view
@@ -200,6 +221,8 @@ export class Editor {
         this.removeSuggestionViewEvent();
         // remove event textarea
         this.removeTextareaEvent();
+        // remove event header view
+        this.removeHeaderViewEvent();
         // remove suggestion view
         this.suggestionViewSelect.parentElement?.removeChild(this.suggestionViewSelect);
         this.suggestionView.parentElement?.removeChild(this.suggestionView);
@@ -215,6 +238,11 @@ export class Editor {
         this.linenoViewCode.parentElement?.removeChild(this.linenoViewCode);
         this.linenoViewPre.parentElement?.removeChild(this.linenoViewPre);
         this.linenoView.parentElement?.removeChild(this.linenoView);
+        // umount header view
+        this.headerViewSelect.parentElement?.removeChild(this.headerViewSelect);
+        this.headerView.parentElement?.removeChild(this.headerView);
+        // umount space view
+        this.spaceView.parentElement?.removeChild(this.spaceView);
         // umount container
         this.container.parentElement?.removeChild(this.container);
     }
@@ -233,6 +261,8 @@ export class Editor {
         this.storeScrollSize();
         this.storeClientSize();
         this.storeScrollPosition();
+        // header view
+        this.reflectTextContentToHeaderView();
         // lineno view
         this.reflectScrollSizeToLinenoView();
         this.reflectClientSizeToLinenoView();
@@ -247,6 +277,33 @@ export class Editor {
         this.reflectedScrollSize();
         this.reflectedClientSize();
         this.reflectedScrollPosition();
+    }
+
+    // header view
+
+    private addHeaderViewEvent() {
+        this.headerViewSelect.addEventListener('change', this.headerViewListenerChange);
+    }
+
+    private removeHeaderViewEvent() {
+        this.headerViewSelect.removeEventListener('change', this.headerViewListenerChange);
+    }
+
+    private handleHeaderViewChange(event: Event): void {
+        const row = parseInt((event.target as HTMLOptionElement).value);
+        if (0 <= row && row < this.linenoViewState.rows.length) {
+            const top = this.linenoViewState.rows[row].top;
+            window.requestAnimationFrame(() => {
+                this.textarea.scrollTop = top;
+            });
+        }
+    }
+
+    private reflectTextContentToHeaderView() {
+        if (this.headerViewState.dirty) {
+            this.headerViewSelect.innerHTML = this.headerViewState.content;
+            this.headerViewState.dirty = false;
+        }
     }
 
     // lineno view
@@ -601,6 +658,12 @@ export class Editor {
     // worker
 
     private handleWorkerMessage(event: MessageEvent<any>):any {
+        // header view
+        if (this.headerViewState.content !== event.data.headerViewHtml) {
+            this.headerViewState.content = event.data.headerViewHtml;
+            this.headerViewState.dirty = true;
+            this.requestTickAnimationFrame();
+        }
         // lineno view
         if (this.linenoViewState.content !== event.data.linenoViewHtml) {
             this.linenoViewState.content = event.data.linenoViewHtml;
@@ -653,6 +716,25 @@ export class Editor {
     private createContainer(): HTMLElement {
         const element = document.createElement('div');
         element.className = EditorStyle.container;
+        return element;
+    }
+
+    private createSpaceView(parent: HTMLElement): HTMLElement {
+        const element = document.createElement('div');
+        parent.appendChild(element);
+        return element;
+    }
+
+    private createHeaderView(parent: HTMLElement): HTMLElement {
+        const element = document.createElement('div');
+        element.className = EditorStyle.headerView;
+        parent.appendChild(element);
+        return element;
+    }
+
+    private createHeaderViewSelect(parent: HTMLElement): HTMLSelectElement {
+        const element = document.createElement('select');
+        parent.appendChild(element);
         return element;
     }
 

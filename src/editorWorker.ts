@@ -1,3 +1,4 @@
+import { getHeaderViewHtml } from './header.ts';
 import { getLinenoViewHtml } from './lineno.ts';
 import { getHighlightViewHtml } from './highlight.ts';
 import { getSuggestionViewHtml } from './suggestion.ts';
@@ -8,6 +9,7 @@ workerContext.onconnect = (event: MessageEvent) => {
     const port = event.ports[0];
     port.onmessage = (event) => {
         port.postMessage({
+            headerViewHtml: getHeaderViewHtml(event.data.text),
             linenoViewHtml: getLinenoViewHtml(event.data.text),
             highlightViewHtml: getHighlightViewHtml(event.data.text, event.data.selectionStart),
             suggestionViewHtml: (event.data.suggestion) ? getSuggestionViewHtml(event.data.text, event.data.selectionStart, event.data.selectionEnd) : '',
