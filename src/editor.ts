@@ -52,7 +52,7 @@ function isValidEditorState(obj: unknown): obj is EditorState {
 
 function getCursor(text: string, position: number): Cursor {
     const target = text.substring(0, position);
-    const row = (target.substring(0, position).match(/\n/g) || []).length;
+    const row = (target.match(/\n/g) || []).length;
     const column = position - target.lastIndexOf('\n') - 1;
     return {position: position, row: row, column};
 }
