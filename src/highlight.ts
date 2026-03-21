@@ -1,23 +1,25 @@
 const PATTERN = /[#]+|\/\/|\/\*|\*\/|:[0-9\.]+|\\[()]|[<>()&"',\n]/g;
 
-export interface HighlightState {
-    header: boolean;
-    lineComment: boolean;
-    blockComment: boolean;
-    parenthesisDepth: number;
-}
-
-export function serializeHighlightState(state: HighlightState) {
-    return ((state.header) ? '1' : '0') + ((state.lineComment) ? '1' : '0') + ((state.blockComment) ? '1' : '0') + state.parenthesisDepth;
-}
-
-export function unserializeHighlightState(state: string) {
-    return {
-        header: state.substring(0,1) === '1',
-        lineComment: state.substring(1,2) === '1',
-        blockComment: state.substring(2,3) === '1',
-        parenthesisDepth: parseInt(state.substring(3)),
-    };
+export class HighlightState {
+    public header: boolean;
+    public lineComment: boolean;
+    public blockComment: boolean;
+    public parenthesisDepth: number;
+    constructor(){
+        this.header = false;
+        this.lineComment = false;
+        this.blockComment = false;
+        this.parenthesisDepth = 0;
+    }
+    public serialize(): string {
+        return ((this.header) ? '1' : '0') + ((this.lineComment) ? '1' : '0') + ((this.blockComment) ? '1' : '0') + this.parenthesisDepth;
+    }
+    public unserialize(value: string): void {
+        this.header = value.substring(0,1) === '1';
+        this.lineComment = value.substring(1,2) === '1';
+        this.blockComment = value.substring(2,3) === '1';
+        this.parenthesisDepth = parseInt(value.substring(3));
+    }
 }
 
 function Replacer(match: string, state: HighlightState): string {
@@ -101,12 +103,7 @@ function Replacer(match: string, state: HighlightState): string {
 }
 
 export function getHighlightViewHtml(code: string, caret: number): string {
-    const state: HighlightState = {
-        header: false,
-        lineComment: false,
-        blockComment: false,
-        parenthesisDepth: 0,
-    };
+    const state = new HighlightState();
     return code.substring(0, caret).replace(PATTERN, m => Replacer(m, state))
         + '<span class="caret"></span>'
         + code.substring(caret).replace(PATTERN, m => Replacer(m, state))

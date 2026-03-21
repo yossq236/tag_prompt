@@ -1,5 +1,5 @@
 import EditorWorker from './editorWorker.ts?sharedworker&url';
-import EditorStyle from './editor.module.css';
+import EditorStyle from './assets/editor.module.css';
 import { isDelimiter } from './utils.ts';
 
 interface EditorState {
@@ -128,8 +128,8 @@ export class Editor {
         this.textareaScrollSize = {width: 0, height: 0, dirty: false};
         this.textareaClientSize = {width: 0, height: 0, dirty: false};
         this.textareaScrollPosition = {top: 0, left: 0, dirty_top: false, dirty_left: false};
-        this.textareaSelectionStart = { position: 0, column: 0, row: 0 };
-        this.textareaSelectionEnd = { position: 0, column: 0, row: 0 };
+        this.textareaSelectionStart = {position: 0, column: 0, row: 0};
+        this.textareaSelectionEnd = {position: 0, column: 0, row: 0};
         // create suggestion view
         this.suggestionView = this.createSuggestionView(this.bodyContainer);
         this.suggestionViewSelect = this.createSuggestionViewSelect(this.suggestionView);
@@ -354,6 +354,14 @@ export class Editor {
             } else if (event.key === 'ArrowDown') {
                 this.focusSuggestionView();
                 event.preventDefault();
+            } else if (event.key === 'Enter') {
+                const word = this.getSelectSuggestionWord(0);
+                if (word) {
+                    this.hiddenSuggestionView();
+                    this.textarea.focus();
+                    this.applySuggestionWordToTextarea(word);
+                    event.preventDefault();
+                }
             }
         } else {
             if (event.key === 'Tab') {
@@ -582,9 +590,10 @@ export class Editor {
         }
     }
 
-    private getSelectSuggestionWord(): string | null {
-        if (0 <= this.suggestionViewSelect.selectedIndex) {
-            return this.suggestionViewSelect.options[this.suggestionViewSelect.selectedIndex].value;
+    private getSelectSuggestionWord(select?: number): string | null {
+        select ??= this.suggestionViewSelect.selectedIndex;
+        if (0 <= select && select < this.suggestionViewSelect.options.length) {
+            return this.suggestionViewSelect.options[select].value;
         }
         return null;
     }
