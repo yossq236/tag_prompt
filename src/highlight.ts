@@ -1,13 +1,26 @@
-const PATTERN = /[#]+|\/\/|\/\*|\*\/|:[0-9\.]+|\\[()]|[<>()&"'\n]/g;
+const PATTERN = /[#]+|\/\/|\/\*|\*\/|:[0-9\.]+|\\[()]|[<>()&"',\n]/g;
 
-interface State {
+export interface HighlightState {
     header: boolean;
     lineComment: boolean;
     blockComment: boolean;
     parenthesisDepth: number;
 }
 
-function Replacer(match: string, state: State): string {
+export function serializeHighlightState(state: HighlightState) {
+    return ((state.header) ? '1' : '0') + ((state.lineComment) ? '1' : '0') + ((state.blockComment) ? '1' : '0') + state.parenthesisDepth;
+}
+
+export function unserializeHighlightState(state: string) {
+    return {
+        header: state.substring(0,1) === '1',
+        lineComment: state.substring(1,2) === '1',
+        blockComment: state.substring(2,3) === '1',
+        parenthesisDepth: parseInt(state.substring(3)),
+    };
+}
+
+function Replacer(match: string, state: HighlightState): string {
     switch(match) {
     case '&': return '&amp;';
     case '<': return '&lt;';
@@ -47,14 +60,18 @@ function Replacer(match: string, state: State): string {
         if (state.lineComment || state.blockComment || state.header) {
         } else {
             state.parenthesisDepth++;
-            return '<span style="color: #ffff00;">' + match + '</span>';
         }
         break;
     case ')':
         if (state.lineComment || state.blockComment || state.header) {
         } else {
             state.parenthesisDepth--;
-            return '<span style="color: #ffff00;">' + match + '</span>';
+        }
+        break;
+    case ',':
+        if (state.lineComment || state.blockComment || state.header) {
+        } else {
+            return '<span style="color: fuchsia;">' + match + '</span>';
         }
         break;
     case '\n':
@@ -74,7 +91,7 @@ function Replacer(match: string, state: State): string {
             break;
         case ':':
             if (0 < state.parenthesisDepth) {
-                return '<span style="color: #f39800;">' + match + '</span>';
+                return '<span style="color: fuchsia;">:</span><span style="color: orange;">' + match.substring(1) + '</span>';
             }
             break;
         }
@@ -84,7 +101,7 @@ function Replacer(match: string, state: State): string {
 }
 
 export function getHighlightViewHtml(code: string, caret: number): string {
-    const state: State = {
+    const state: HighlightState = {
         header: false,
         lineComment: false,
         blockComment: false,

@@ -55,6 +55,7 @@
 /* body container */
 .body-container {
     position: relative;
+    
     width: 100%;
     height: 100%;
 
@@ -95,7 +96,7 @@
 
     pre {
         /* width: script control */
-        /* height: script control */
+        /* height: auto */
 
         margin: 0;
     }

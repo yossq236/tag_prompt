@@ -1,19 +1,13 @@
-import { isDelimiter, type Cursor, getCursor } from './utils.ts';
 import EditorWorker from './editorWorker.ts?sharedworker&url';
 import EditorStyle from './editor.module.css';
+import { isDelimiter } from './utils.ts';
 
-interface State {
+interface EditorState {
     text: string;
     selectionStart: number;
     selectionEnd: number;
     scrollTop: number;
     scrollLeft: number;
-}
-
-interface PositionState {
-    top: number;
-    left: number;
-    dirty: boolean;
 }
 
 interface SizeState {
@@ -22,9 +16,53 @@ interface SizeState {
     dirty: boolean;
 }
 
-function isValidState(obj: unknown): obj is State {
+interface ScrollState {
+    top: number;
+    left: number;
+    dirty_top: boolean;
+    dirty_left: boolean;
+}
+
+interface Cursor {
+    position: number;
+    column: number;
+    row: number;
+}
+
+interface RowPosition {
+    top: number;
+    bottom: number;
+}
+
+interface LinenoViewState {
+    content: string;
+    rows: Array<RowPosition>;
+    dirty: boolean;
+}
+
+interface HighlightViewState {
+    content: string;
+    rows: Array<string>;
+    dirty: boolean;
+}
+
+function isValidEditorState(obj: unknown): obj is EditorState {
     return (obj !== null) && (typeof obj === 'object') && ('text' in obj) && ('selectionStart' in obj) && ('selectionEnd' in obj) && ('scrollTop' in obj) && ('scrollLeft' in obj);
 }
+
+function getCursor(text: string, position: number): Cursor {
+    const target = text.substring(0, position);
+    const row = (target.substring(0, position).match(/\n/g) || []).length;
+    const column = position - target.lastIndexOf('\n') - 1;
+    return {position: position, row: row, column};
+}
+
+// function getWord(text: string, position: number): string {
+//     let word_start = position;
+//     let word_end = position;
+//     for (let i = position - 1; 0 <= i && !isDelimiter(text.charAt(i)); word_start = i--);
+//     return text.substring(word_start, word_end);
+// }
 
 export class Editor {
     // containor
@@ -35,10 +73,12 @@ export class Editor {
     private linenoView: HTMLElement;
     private linenoViewPre: HTMLElement;
     private linenoViewCode: HTMLElement;
+    private linenoViewState: LinenoViewState;
     // highlight view
     private highlightView: HTMLElement;
     private highlightViewPre: HTMLElement;
     private highlightViewCode: HTMLElement;
+    private highlightViewState: HighlightViewState;
     // textarea
     private textarea: HTMLTextAreaElement;
     private textareaListenerKeydown: (event: KeyboardEvent) => void;
@@ -48,9 +88,9 @@ export class Editor {
     private textareaListenerSelectionchange: (event: Event) => void;
     private textareaScrollSize: SizeState;
     private textareaClientSize: SizeState;
-    private textareaScrollPosition: PositionState;
-    private textareaCursorStart: Cursor;
-    private textareaCursorEnd: Cursor;
+    private textareaScrollPosition: ScrollState;
+    private textareaSelectionStart: Cursor;
+    private textareaSelectionEnd: Cursor;
     // suggestion view
     private suggestionView: HTMLElement;
     private suggestionViewSelect: HTMLSelectElement;
@@ -58,7 +98,7 @@ export class Editor {
     private suggestionViewListenerClick: (event: MouseEvent) => void;
     // worker
     private worker: SharedWorker;
-    // animation frame
+    // tick animation frame
     private tickAnimationFrameID: number;
 
     // constructor
@@ -70,12 +110,14 @@ export class Editor {
         this.linenoView = this.createLinenoView(this.container);
         this.linenoViewPre = this.createLinenoViewPre(this.linenoView);
         this.linenoViewCode = this.createLinenoViewCode(this.linenoViewPre);
+        this.linenoViewState = {content: '', rows: new Array<RowPosition>, dirty: false};
         // create body container
         this.bodyContainer = this.createBodyContainer(this.container);
         // create highlight view
         this.highlightView = this.createHighlightView(this.bodyContainer);
         this.highlightViewPre = this.createHighlightViewPre(this.highlightView);
         this.highlightViewCode = this.createHighlightViewCode(this.highlightViewPre);
+        this.highlightViewState = {content: '', rows: new Array<string>, dirty: false};
         // create textarea
         this.textarea = this.createTextarea(this.bodyContainer);
         this.textareaListenerKeydown = e => this.handleTextareaKeyDown(e);
@@ -85,9 +127,9 @@ export class Editor {
         this.textareaListenerSelectionchange = e => this.handleTextareaSelectionchange(e);
         this.textareaScrollSize = {width: 0, height: 0, dirty: false};
         this.textareaClientSize = {width: 0, height: 0, dirty: false};
-        this.textareaScrollPosition = {top: 0, left: 0, dirty: false};
-        this.textareaCursorStart = { column: 0, row: 0 };
-        this.textareaCursorEnd = { column: 0, row: 0 };
+        this.textareaScrollPosition = {top: 0, left: 0, dirty_top: false, dirty_left: false};
+        this.textareaSelectionStart = { position: 0, column: 0, row: 0 };
+        this.textareaSelectionEnd = { position: 0, column: 0, row: 0 };
         // create suggestion view
         this.suggestionView = this.createSuggestionView(this.bodyContainer);
         this.suggestionViewSelect = this.createSuggestionViewSelect(this.suggestionView);
@@ -120,7 +162,7 @@ export class Editor {
         });
     }
     set state(newValue: string) {
-        let stateObj: State = {
+        let stateObj: EditorState = {
             text: newValue,
             selectionStart: 0,
             selectionEnd: 0,
@@ -129,7 +171,7 @@ export class Editor {
         };
         try {
             const parseObj = JSON.parse(newValue);
-            if (isValidState(parseObj)) {
+            if (isValidEditorState(parseObj)) {
                 stateObj = parseObj;
             }
         } catch {}
@@ -144,7 +186,7 @@ export class Editor {
             });
         }
         if (change_text) {
-            this.postWorkerUpdateText(false);
+            this.postWorkerUpdate();
         }
     }
 
@@ -195,10 +237,12 @@ export class Editor {
         this.reflectScrollSizeToLinenoView();
         this.reflectClientSizeToLinenoView();
         this.reflectScrollPositionToLinenoView();
+        this.reflectTextContentToLinenoView();
         // highlight view
         this.reflectScrollSizeToHighlightView();
         this.reflectClientSizeToHighlightView();
         this.reflectScrollPositionToHighlightView();
+        this.reflectTextContentToHighlightView();
         // end
         this.reflectedScrollSize();
         this.reflectedClientSize();
@@ -220,8 +264,23 @@ export class Editor {
     }
 
     private reflectScrollPositionToLinenoView() {
-        if (this.textareaScrollPosition.dirty) {
+        if (this.textareaScrollPosition.dirty_top) {
             this.linenoView.scrollTop = this.textareaScrollPosition.top;
+        }
+    }
+
+    private reflectTextContentToLinenoView() {
+        if (this.linenoViewState.dirty) {
+            this.linenoViewCode.innerHTML = this.linenoViewState.content;
+            const spans = this.linenoViewCode.querySelectorAll('span');
+            const spansLen = spans.length;
+            const result = new Array<RowPosition>;
+            for (let i = 0; i < spansLen; i++) {
+                const e = spans[i];
+                result.push({top: e.offsetTop, bottom: e.offsetTop + e.offsetHeight});
+            }
+            this.linenoViewState.rows = result;
+            this.linenoViewState.dirty = false;
         }
     }
 
@@ -230,7 +289,6 @@ export class Editor {
     private reflectScrollSizeToHighlightView() {
         if (this.textareaScrollSize.dirty) {
             this.highlightViewPre.style.width = this.textareaScrollSize.width + 'px';
-            this.highlightViewPre.style.height = this.textareaScrollSize.height + 'px';
         }
     }
 
@@ -242,9 +300,20 @@ export class Editor {
     }
 
     private reflectScrollPositionToHighlightView() {
-        if (this.textareaScrollPosition.dirty) {
+        if (this.textareaScrollPosition.dirty_left) {
             this.highlightView.scrollLeft = this.textareaScrollPosition.left;
-            this.highlightView.scrollTop = this.textareaScrollPosition.top;
+        }
+    }
+
+    private reflectTextContentToHighlightView() {
+        if (this.textareaScrollPosition.dirty_top || this.textareaClientSize.dirty || this.highlightViewState.dirty) {
+            const viewportTop = this.textareaScrollPosition.top;
+            const vireportBottom = viewportTop + this.textareaClientSize.height;
+            const row_begin = Math.max(0, this.linenoViewState.rows.findIndex(v => viewportTop < v.bottom));
+            const row_end = Math.max(0, this.linenoViewState.rows.findLastIndex(v => v.top < vireportBottom));
+            this.highlightViewCode.innerHTML = this.highlightViewState.rows.filter((_,i) => row_begin <= i && i <= row_end).join('\n');
+            this.highlightView.scrollTop = (this.linenoViewState.rows.length === 0) ? 0 : viewportTop - this.linenoViewState.rows[row_begin].top;
+            this.highlightViewState.dirty = false;
         }
     }
 
@@ -296,7 +365,7 @@ export class Editor {
 
     private handleTextareaInput(_event: Event): void {
         this.requestTickAnimationFrame();
-        this.postWorkerUpdateText(true);
+        this.postWorkerInput();
     }
 
     private handleTextareaScroll(_event: Event): void {
@@ -315,13 +384,13 @@ export class Editor {
         const cursor_end = getCursor(text, end);
         const new_row_start = cursor_start.row;
         const new_row_end = (cursor_start.row < cursor_end.row && cursor_end.column === 0) ? cursor_end.row - 1 : cursor_end.row;
-        const old_row_start = this.textareaCursorStart.row;
-        const old_row_end = (this.textareaCursorStart.row < this.textareaCursorEnd.row && this.textareaCursorEnd.column === 0) ? this.textareaCursorEnd.row - 1 : this.textareaCursorEnd.row;
+        const old_row_start = this.textareaSelectionStart.row;
+        const old_row_end = (this.textareaSelectionStart.row < this.textareaSelectionEnd.row && this.textareaSelectionEnd.column === 0) ? this.textareaSelectionEnd.row - 1 : this.textareaSelectionEnd.row;
         if (new_row_start !== old_row_start || new_row_end !== old_row_end) {
             this.linenoViewCode.querySelectorAll('span:nth-of-type(n+'+(old_row_start+1)+'):nth-of-type(-n+'+(old_row_end+1)+')').forEach(e => e.classList.toggle(EditorStyle.selected, false));
             this.linenoViewCode.querySelectorAll('span:nth-of-type(n+'+(new_row_start+1)+'):nth-of-type(-n+'+(new_row_end+1)+')').forEach(e => e.classList.toggle(EditorStyle.selected, true));
-            this.textareaCursorStart = cursor_start;
-            this.textareaCursorEnd = cursor_end;
+            this.textareaSelectionStart = cursor_start;
+            this.textareaSelectionEnd = cursor_end;
         }
     }
 
@@ -356,15 +425,19 @@ export class Editor {
     private storeScrollPosition() {
         const top = this.textarea.scrollTop;
         const left = this.textarea.scrollLeft;
-        if (this.textareaScrollPosition.top !== top || this.textareaScrollPosition.left !== left) {
+        if (this.textareaScrollPosition.top !== top) {
             this.textareaScrollPosition.top = top;
+            this.textareaScrollPosition.dirty_top = true;
+        }
+        if (this.textareaScrollPosition.left !== left) {
             this.textareaScrollPosition.left = left;
-            this.textareaScrollPosition.dirty = true;
+            this.textareaScrollPosition.dirty_left = true;
         }
     }
 
     private reflectedScrollPosition() {
-        this.textareaScrollPosition.dirty = false;
+        this.textareaScrollPosition.dirty_top = false;
+        this.textareaScrollPosition.dirty_left = false;
     }
 
     private toggleComment() {
@@ -410,7 +483,7 @@ export class Editor {
         this.textarea.selectionStart = new_selection_start;
         this.textarea.selectionEnd = new_selection_end;
         this.requestTickAnimationFrame();
-        this.postWorkerUpdateText(false);
+        this.postWorkerUpdate();
     }
 
     private insertValue(value: string, start?: number, end?: number) {
@@ -420,7 +493,7 @@ export class Editor {
         this.textarea.value = text.substring(0, start) + value + text.substring(end);
         this.textarea.selectionStart = this.textarea.selectionEnd = start + value.length;
         this.requestTickAnimationFrame();
-        this.postWorkerUpdateText(false);
+        this.postWorkerUpdate();
     }
 
     private applySuggestionWordToTextarea(word: string) {
@@ -491,8 +564,8 @@ export class Editor {
     private reflectCaretPositionToSuggestionView() {
         const caret = this.highlightViewCode.querySelector('span.caret') as HTMLSpanElement;
         if (caret) {
-            this.suggestionView.style.top = (caret.offsetTop + caret.offsetHeight - this.textarea.scrollTop) + 'px';
-            this.suggestionView.style.left = (caret.offsetLeft - this.textarea.scrollLeft) + 'px';
+            this.suggestionView.style.top = (caret.offsetTop + caret.offsetHeight - this.highlightView.scrollTop) + 'px';
+            this.suggestionView.style.left = (caret.offsetLeft - this.highlightView.scrollLeft) + 'px';
         }
     }
 
@@ -520,9 +593,18 @@ export class Editor {
 
     private handleWorkerMessage(event: MessageEvent<any>):any {
         // lineno view
-        this.linenoViewCode.innerHTML = event.data.linenoViewHtml;
+        if (this.linenoViewState.content !== event.data.linenoViewHtml) {
+            this.linenoViewState.content = event.data.linenoViewHtml;
+            this.linenoViewState.dirty = true;
+            this.requestTickAnimationFrame();
+        }
         // highlight view
-        this.highlightViewCode.innerHTML = event.data.highlightViewHtml;
+        if (this.highlightViewState.content !== event.data.highlightViewHtml) {
+            this.highlightViewState.content = event.data.highlightViewHtml;
+            this.highlightViewState.rows = event.data.highlightViewHtml.split('\n');
+            this.highlightViewState.dirty = true;
+            this.requestTickAnimationFrame();
+        }
         // suggestion view
         if (0 < event.data.suggestionViewHtml.length) {
             this.suggestionViewSelect.innerHTML = event.data.suggestionViewHtml;
@@ -536,9 +618,21 @@ export class Editor {
         }
     }
 
-    private postWorkerUpdateText(suggestion: boolean) {
+    private postWorkerInput() {
+        const start = this.textarea.selectionStart;
+        const end = this.textarea.selectionEnd;
+        const text = this.textarea.value;
         this.worker.port.postMessage({
-            suggestion: suggestion,
+            suggestion: true,
+            selectionStart: start,
+            selectionEnd: end,
+            text: text
+        });
+    }
+
+    private postWorkerUpdate() {
+        this.worker.port.postMessage({
+            suggestion: false,
             selectionStart: this.textarea.selectionStart,
             selectionEnd: this.textarea.selectionEnd,
             text: this.textarea.value
@@ -550,13 +644,6 @@ export class Editor {
     private createContainer(): HTMLElement {
         const element = document.createElement('div');
         element.className = EditorStyle.container;
-        return element;
-    }
-
-    private createBodyContainer(parent: HTMLElement): HTMLElement {
-        const element = document.createElement('div');
-        element.className = EditorStyle.bodyContainer;
-        parent.appendChild(element);
         return element;
     }
 
@@ -575,6 +662,13 @@ export class Editor {
 
     private createLinenoViewCode(parent: HTMLElement): HTMLElement {
         const element = document.createElement('code');
+        parent.appendChild(element);
+        return element;
+    }
+
+    private createBodyContainer(parent: HTMLElement): HTMLElement {
+        const element = document.createElement('div');
+        element.className = EditorStyle.bodyContainer;
         parent.appendChild(element);
         return element;
     }
