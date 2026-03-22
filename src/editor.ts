@@ -72,8 +72,6 @@ function getCursor(text: string, position: number): Cursor {
 export class Editor {
     // containor
     private container: HTMLElement;
-    // space view
-    private spaceView: HTMLElement;
     // header view
     private headerView: HTMLElement;
     private headerViewSelect: HTMLSelectElement;
@@ -118,8 +116,6 @@ export class Editor {
     constructor() {
         // create container
         this.container = this.createContainer();
-        // create space view
-        this.spaceView = this.createSpaceView(this.container);
         // create header view
         this.headerView = this.createHeaderView(this.container);
         this.headerViewSelect = this.createHeaderViewSelect(this.headerView);
@@ -241,8 +237,6 @@ export class Editor {
         // umount header view
         this.headerViewSelect.parentElement?.removeChild(this.headerViewSelect);
         this.headerView.parentElement?.removeChild(this.headerView);
-        // umount space view
-        this.spaceView.parentElement?.removeChild(this.spaceView);
         // umount container
         this.container.parentElement?.removeChild(this.container);
     }
@@ -716,12 +710,6 @@ export class Editor {
     private createContainer(): HTMLElement {
         const element = document.createElement('div');
         element.className = EditorStyle.container;
-        return element;
-    }
-
-    private createSpaceView(parent: HTMLElement): HTMLElement {
-        const element = document.createElement('div');
-        parent.appendChild(element);
         return element;
     }
 
