@@ -1,8 +1,96 @@
+function splitTokens(code: string): Array<string> {
+    const result = new Array<string>;
+    const matches = code.matchAll(/[#]+|\/\/|\/\*|\*\/|\n/g);
+    let cursor = 0;
+    for (const match of matches) {
+        if (cursor < match.index) {
+            result.push(match.input.substring(cursor, match.index));
+        }
+        const word = match[0];
+        result.push(word);
+        cursor = match.index + word.length;
+    }
+    if (cursor < code.length) {
+        result.push(code.substring(cursor));
+    }
+    return result;
+}
+
 interface Header {
     row: number;
-    text: string;
+    label: string;
+    active: number;
+}
+
+function summaryHeaders(tokens: Array<string>): Array<Header> {
+    const result = new Array<Header>;
+    let row = 0;
+    let header = false;
+    let lineComment = false;
+    let blockComment = false;
+    let current = {row: 0, label: '', active: 0};
+    for (const token of tokens) {
+        switch(token){
+            case '//':
+                if (lineComment || blockComment) {
+                } else if (header) {
+                    header = false;
+                    lineComment = true;
+                } else {
+                    lineComment = true;
+                }
+                break;
+            case '/*':
+                if (lineComment || blockComment) {
+                } else if (header) {
+                    header = false;
+                    blockComment = true;
+                } else {
+                    blockComment = true;
+                }
+                break;
+            case '*/':
+                if (lineComment) {
+                } else if (blockComment) {
+                    blockComment = false;
+                }
+                break;
+            case '\n':
+                if (lineComment || header) {
+                    header = lineComment = false;
+                }
+                row++;
+                break;
+            default:
+                if (lineComment || blockComment) {
+                } else if (header) {
+                    current.label += token;
+                } else if (token.startsWith('#')) {
+                    if (lineComment || blockComment) {
+                    } else if (header) {
+                        current.label += token;
+                    } else {
+                        header = true;
+                        if (current.label !== '') {
+                            result.push(current);
+                        }
+                        current = {row: row, label: token, active: 0};
+                    }
+                } else {
+                    current.active++;
+                }
+                break;
+        }
+    }
+    if (current.label !== '') {
+        result.push(current);
+    }
+    return result;
 }
 
 export function getHeaderViewHtml(code: string): string {
-    return code.split('\n').map<Header>((v,i) => ({row: i, text: v})).filter(v => v.text.startsWith('#')).map<string>(v => '<option value="' + v.row + '">' + v.text + '</option>').join('\n');
+    const tokens = splitTokens(code);
+    const headers = summaryHeaders(tokens);
+    return headers.map<string>(v => '<option value="' + v.row + '">' + v.label + ((0 < v.active) ? ' [*]' : '') + '</option>').join('\n');
 }
+
