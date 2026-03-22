@@ -1,6 +1,6 @@
 import EditorWorker from './editorWorker.ts?sharedworker&url';
 import EditorStyle from './assets/editor.module.css';
-import { isDelimiter } from './utils.ts';
+import { isDelimiter, el } from './utils.ts';
 
 interface EditorState {
     text: string;
@@ -115,26 +115,43 @@ export class Editor {
 
     constructor() {
         // create container
-        this.container = this.createContainer();
-        // create header view
-        this.headerView = this.createHeaderView(this.container);
-        this.headerViewSelect = this.createHeaderViewSelect(this.headerView);
+        this.container = el('div', EditorStyle.container, undefined, [
+            // create header view
+            (this.headerView = el('div', EditorStyle.headerView, undefined, [
+                (this.headerViewSelect = el('select')),
+            ])),
+            // create lineno view
+            (this.linenoView = el('div', EditorStyle.linenoView, undefined, [
+                (this.linenoViewPre = el('pre', undefined, undefined, [
+                    (this.linenoViewCode = el('code')),
+                ])),
+            ])),
+            // create body container
+            (this.bodyContainer = el('div', EditorStyle.bodyContainer, undefined, [
+                // create highlight view
+                (this.highlightView = el('div', EditorStyle.highlightView, undefined, [
+                    (this.highlightViewPre = el('pre', undefined, undefined, [
+                        (this.highlightViewCode = el('code')),
+                    ])),
+                ])),
+                // create textarea
+                (this.textarea = el('textarea', 'comfy-multiline-input')),
+                // create suggestion view
+                (this.suggestionView = el('div', EditorStyle.suggestionView, undefined, [
+                    (this.suggestionViewSelect = el('select', undefined, {'size': '10'})),
+                ])),
+            ])),
+        ]);
+        // initialize container
+        // initialize header view
         this.headerViewListenerChange = e => this.handleHeaderViewChange(e);
         this.headerViewState = {content: '', dirty: false};
-        // create lineno view
-        this.linenoView = this.createLinenoView(this.container);
-        this.linenoViewPre = this.createLinenoViewPre(this.linenoView);
-        this.linenoViewCode = this.createLinenoViewCode(this.linenoViewPre);
+        // initialize lineno view
         this.linenoViewState = {content: '', rows: new Array<RowPosition>, dirty: false};
-        // create body container
-        this.bodyContainer = this.createBodyContainer(this.container);
-        // create highlight view
-        this.highlightView = this.createHighlightView(this.bodyContainer);
-        this.highlightViewPre = this.createHighlightViewPre(this.highlightView);
-        this.highlightViewCode = this.createHighlightViewCode(this.highlightViewPre);
+        // initialize body container
+        // initialize highlight view
         this.highlightViewState = {content: '', rows: new Array<string>, dirty: false};
-        // create textarea
-        this.textarea = this.createTextarea(this.bodyContainer);
+        // initialize textarea
         this.textareaListenerKeydown = e => this.handleTextareaKeyDown(e);
         this.textareaListenerInput = e => this.handleTextareaInput(e);
         this.textareaListenerScroll = e => this.handleTextareaScroll(e);
@@ -145,22 +162,14 @@ export class Editor {
         this.textareaScrollPosition = {top: 0, left: 0, dirty_top: false, dirty_left: false};
         this.textareaSelectionStart = {position: 0, column: 0, row: 0};
         this.textareaSelectionEnd = {position: 0, column: 0, row: 0};
-        // create suggestion view
-        this.suggestionView = this.createSuggestionView(this.bodyContainer);
-        this.suggestionViewSelect = this.createSuggestionViewSelect(this.suggestionView);
+        // initialize suggestion view
         this.suggestionViewListenerKeydown = e => this.handleSuggestionViewKeyDown(e);
         this.suggestionViewListenerClick = e => this.handleSuggestionViewClick(e);
-        // create worker
+        // initialize worker
         this.worker = new SharedWorker(EditorWorker);
         this.worker.port.onmessage = e => this.handleWorkerMessage(e);
-        // create animation frame
+        // initialize animation frame
         this.tickAnimationFrameID = 0;
-        // add event header view
-        this.addHeaderViewEvent();
-        // add event textarea
-        this.addTextareaEvent();
-        // add event suggestion view
-        this.addSuggestionViewEvent();
     }
 
     // property
@@ -207,7 +216,22 @@ export class Editor {
         }
     }
 
-    // unmount
+    // mount / unmount 
+
+    public mount(parent?: HTMLElement) {
+        // initialize animation frame
+        this.tickAnimationFrameID = 0;
+        // add event header view
+        this.addHeaderViewEvent();
+        // add event textarea
+        this.addTextareaEvent();
+        // add event suggestion view
+        this.addSuggestionViewEvent();
+        // mount
+        if (parent) {
+            parent.appendChild(this.container);
+        }
+    }
 
     public unmount() {
         // close worker
@@ -703,92 +727,5 @@ export class Editor {
             selectionEnd: this.textarea.selectionEnd,
             text: this.textarea.value
         });
-    }
-
-    // create 
-
-    private createContainer(): HTMLElement {
-        const element = document.createElement('div');
-        element.className = EditorStyle.container;
-        return element;
-    }
-
-    private createHeaderView(parent: HTMLElement): HTMLElement {
-        const element = document.createElement('div');
-        element.className = EditorStyle.headerView;
-        parent.appendChild(element);
-        return element;
-    }
-
-    private createHeaderViewSelect(parent: HTMLElement): HTMLSelectElement {
-        const element = document.createElement('select');
-        parent.appendChild(element);
-        return element;
-    }
-
-    private createLinenoView(parent: HTMLElement): HTMLElement {
-        const element = document.createElement('div');
-        element.className = EditorStyle.linenoView;
-        parent.appendChild(element);
-        return element;
-    }
-
-    private createLinenoViewPre(parent: HTMLElement): HTMLElement {
-        const element = document.createElement('pre');
-        parent.appendChild(element);
-        return element;
-    }
-
-    private createLinenoViewCode(parent: HTMLElement): HTMLElement {
-        const element = document.createElement('code');
-        parent.appendChild(element);
-        return element;
-    }
-
-    private createBodyContainer(parent: HTMLElement): HTMLElement {
-        const element = document.createElement('div');
-        element.className = EditorStyle.bodyContainer;
-        parent.appendChild(element);
-        return element;
-    }
-
-    private createHighlightView(parent: HTMLElement): HTMLElement {
-        const element = document.createElement('div');
-        element.className = EditorStyle.highlightView;
-        parent.appendChild(element);
-        return element;
-    }
-
-    private createHighlightViewPre(parent: HTMLElement): HTMLElement {
-        const element = document.createElement('pre');
-        parent.appendChild(element);
-        return element;
-    }
-
-    private createHighlightViewCode(parent: HTMLElement): HTMLElement {
-        const element = document.createElement('code');
-        parent.appendChild(element);
-        return element;
-    }
-
-    private createTextarea(parent: HTMLElement):HTMLTextAreaElement {
-        const element = document.createElement('textarea');
-        element.className = 'comfy-multiline-input';
-        parent.appendChild(element);
-        return element;
-    }
-
-    private createSuggestionView(parent: HTMLElement): HTMLElement {
-        const element = document.createElement('div');
-        element.className = EditorStyle.suggestionView;
-        parent.appendChild(element);
-        return element;
-    }
-
-    private createSuggestionViewSelect(parent: HTMLElement): HTMLSelectElement {
-        const element = document.createElement('select');
-        element.setAttribute('size', '10');
-        parent.appendChild(element);
-        return element;
     }
 }

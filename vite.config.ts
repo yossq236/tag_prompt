@@ -18,7 +18,8 @@ export default defineConfig({
                 globals: {'/scripts/app.js': 'app'},
             }
         },
-        minify: 'terser',
+        minify: 'oxc',
+        // minify: 'terser',
         // minify: false,
     },
     worker: {

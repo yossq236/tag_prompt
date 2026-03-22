@@ -1,1 +1,371 @@
-import{app as e}from"/scripts/app.js";var t="_container_1r079_3",i="_lineno-view_1r079_59",n="_selected_1r079_61",s="_header-view_1r079_75",r="_body-container_1r079_165",a="_highlight-view_1r079_241",o="_suggestion-view_1r079_291";function h(e){return" "===e||","===e||"\n"===e||256<=e.charCodeAt(0)}function l(e,t){const i=e.substring(0,t);return{position:t,row:(i.match(/\n/g)||[]).length,column:t-i.lastIndexOf("\n")-1}}var c=class{container;headerView;headerViewSelect;headerViewListenerChange;headerViewState;linenoView;linenoViewPre;linenoViewCode;linenoViewState;bodyContainer;highlightView;highlightViewPre;highlightViewCode;highlightViewState;textarea;textareaListenerKeydown;textareaListenerInput;textareaListenerScroll;textareaResizeObserver;textareaListenerSelectionchange;textareaScrollSize;textareaClientSize;textareaScrollPosition;textareaSelectionStart;textareaSelectionEnd;suggestionView;suggestionViewSelect;suggestionViewListenerKeydown;suggestionViewListenerClick;worker;tickAnimationFrameID;constructor(){this.container=this.createContainer(),this.headerView=this.createHeaderView(this.container),this.headerViewSelect=this.createHeaderViewSelect(this.headerView),this.headerViewListenerChange=e=>this.handleHeaderViewChange(e),this.headerViewState={content:"",dirty:!1},this.linenoView=this.createLinenoView(this.container),this.linenoViewPre=this.createLinenoViewPre(this.linenoView),this.linenoViewCode=this.createLinenoViewCode(this.linenoViewPre),this.linenoViewState={content:"",rows:new Array,dirty:!1},this.bodyContainer=this.createBodyContainer(this.container),this.highlightView=this.createHighlightView(this.bodyContainer),this.highlightViewPre=this.createHighlightViewPre(this.highlightView),this.highlightViewCode=this.createHighlightViewCode(this.highlightViewPre),this.highlightViewState={content:"",rows:new Array,dirty:!1},this.textarea=this.createTextarea(this.bodyContainer),this.textareaListenerKeydown=e=>this.handleTextareaKeyDown(e),this.textareaListenerInput=e=>this.handleTextareaInput(e),this.textareaListenerScroll=e=>this.handleTextareaScroll(e),this.textareaResizeObserver=new ResizeObserver(e=>this.handleTextareaReSize(e)),this.textareaListenerSelectionchange=e=>this.handleTextareaSelectionchange(e),this.textareaScrollSize={width:0,height:0,dirty:!1},this.textareaClientSize={width:0,height:0,dirty:!1},this.textareaScrollPosition={top:0,left:0,dirty_top:!1,dirty_left:!1},this.textareaSelectionStart={position:0,column:0,row:0},this.textareaSelectionEnd={position:0,column:0,row:0},this.suggestionView=this.createSuggestionView(this.bodyContainer),this.suggestionViewSelect=this.createSuggestionViewSelect(this.suggestionView),this.suggestionViewListenerKeydown=e=>this.handleSuggestionViewKeyDown(e),this.suggestionViewListenerClick=e=>this.handleSuggestionViewClick(e),this.worker=new SharedWorker("/extensions/tag_prompt/assets/editorWorker.js"),this.worker.port.onmessage=e=>this.handleWorkerMessage(e),this.tickAnimationFrameID=0,this.addHeaderViewEvent(),this.addTextareaEvent(),this.addSuggestionViewEvent()}get element(){return this.container}get state(){return JSON.stringify({text:this.textarea.value,selectionStart:this.textarea.selectionStart,selectionEnd:this.textarea.selectionEnd,scrollTop:this.textareaScrollPosition.top,scrollLeft:this.textareaScrollPosition.left})}set state(e){let t={text:e,selectionStart:0,selectionEnd:0,scrollTop:0,scrollLeft:0};try{const n=JSON.parse(e);null!==(i=n)&&"object"==typeof i&&"text"in i&&"selectionStart"in i&&"selectionEnd"in i&&"scrollTop"in i&&"scrollLeft"in i&&(t=n)}catch{}var i;const n=this.textarea.value!==t.text;this.textarea.value=t.text,this.textarea.selectionStart=t.selectionStart,this.textarea.selectionEnd=t.selectionEnd,this.textareaScrollPosition.top===t.scrollTop&&this.textareaScrollPosition.left===t.scrollLeft||window.requestAnimationFrame(()=>{this.textarea.scrollTop=t.scrollTop,this.textarea.scrollLeft=t.scrollLeft}),n&&this.postWorkerUpdate()}unmount(){this.worker.port.close(),this.worker.port.onmessage=null,this.removeSuggestionViewEvent(),this.removeTextareaEvent(),this.removeHeaderViewEvent(),this.suggestionViewSelect.parentElement?.removeChild(this.suggestionViewSelect),this.suggestionView.parentElement?.removeChild(this.suggestionView),this.textarea.parentElement?.removeChild(this.textarea),this.highlightViewCode.parentElement?.removeChild(this.highlightViewCode),this.highlightViewPre.parentElement?.removeChild(this.highlightViewPre),this.highlightView.parentElement?.removeChild(this.highlightView),this.bodyContainer.parentElement?.removeChild(this.bodyContainer),this.linenoViewCode.parentElement?.removeChild(this.linenoViewCode),this.linenoViewPre.parentElement?.removeChild(this.linenoViewPre),this.linenoView.parentElement?.removeChild(this.linenoView),this.headerViewSelect.parentElement?.removeChild(this.headerViewSelect),this.headerView.parentElement?.removeChild(this.headerView),this.container.parentElement?.removeChild(this.container)}requestTickAnimationFrame(){0===this.tickAnimationFrameID&&(this.tickAnimationFrameID=window.requestAnimationFrame(e=>this.handleTickAnimationFrame(e)))}handleTickAnimationFrame(e){this.tickAnimationFrameID=0,this.storeScrollSize(),this.storeClientSize(),this.storeScrollPosition(),this.reflectTextContentToHeaderView(),this.reflectScrollSizeToLinenoView(),this.reflectClientSizeToLinenoView(),this.reflectScrollPositionToLinenoView(),this.reflectTextContentToLinenoView(),this.reflectScrollSizeToHighlightView(),this.reflectClientSizeToHighlightView(),this.reflectScrollPositionToHighlightView(),this.reflectTextContentToHighlightView(),this.reflectedScrollSize(),this.reflectedClientSize(),this.reflectedScrollPosition()}addHeaderViewEvent(){this.headerViewSelect.addEventListener("change",this.headerViewListenerChange)}removeHeaderViewEvent(){this.headerViewSelect.removeEventListener("change",this.headerViewListenerChange)}handleHeaderViewChange(e){const t=parseInt(e.target.value);if(0<=t&&t<this.linenoViewState.rows.length){const e=this.linenoViewState.rows[t].top;window.requestAnimationFrame(()=>{this.textarea.scrollTop=e})}}reflectTextContentToHeaderView(){this.headerViewState.dirty&&(this.headerViewSelect.innerHTML=this.headerViewState.content,this.headerViewState.dirty=!1)}reflectScrollSizeToLinenoView(){this.textareaScrollSize.dirty&&(this.linenoViewPre.style.height=this.textareaScrollSize.height+"px")}reflectClientSizeToLinenoView(){this.textareaClientSize.dirty&&(this.linenoView.style.height=this.textareaClientSize.height+"px")}reflectScrollPositionToLinenoView(){this.textareaScrollPosition.dirty_top&&(this.linenoView.scrollTop=this.textareaScrollPosition.top)}reflectTextContentToLinenoView(){if(this.linenoViewState.dirty){this.linenoViewCode.innerHTML=this.linenoViewState.content;const e=this.linenoViewCode.querySelectorAll("span"),t=e.length,i=new Array;for(let n=0;n<t;n++){const t=e[n];i.push({top:t.offsetTop,bottom:t.offsetTop+t.offsetHeight})}this.linenoViewState.rows=i,this.linenoViewState.dirty=!1}}reflectScrollSizeToHighlightView(){this.textareaScrollSize.dirty&&(this.highlightViewPre.style.width=this.textareaScrollSize.width+"px")}reflectClientSizeToHighlightView(){this.textareaClientSize.dirty&&(this.highlightView.style.width=this.textareaClientSize.width+"px",this.highlightView.style.height=this.textareaClientSize.height+"px")}reflectScrollPositionToHighlightView(){this.textareaScrollPosition.dirty_left&&(this.highlightView.scrollLeft=this.textareaScrollPosition.left)}reflectTextContentToHighlightView(){if(this.textareaScrollPosition.dirty_top||this.textareaClientSize.dirty||this.highlightViewState.dirty){const e=this.textareaScrollPosition.top,t=e+this.textareaClientSize.height,i=Math.max(0,this.linenoViewState.rows.findIndex(t=>e<t.bottom)),n=Math.max(0,this.linenoViewState.rows.findLastIndex(e=>e.top<t));this.highlightViewCode.innerHTML=this.highlightViewState.rows.filter((e,t)=>i<=t&&t<=n).join("\n"),this.highlightView.scrollTop=0===this.linenoViewState.rows.length?0:e-this.linenoViewState.rows[i].top,this.highlightViewState.dirty=!1}}addTextareaEvent(){this.textarea.addEventListener("keydown",this.textareaListenerKeydown),this.textarea.addEventListener("input",this.textareaListenerInput),this.textarea.addEventListener("scroll",this.textareaListenerScroll),this.textareaResizeObserver.observe(this.textarea),this.textarea.addEventListener("selectionchange",this.textareaListenerSelectionchange)}removeTextareaEvent(){this.textarea.removeEventListener("keydown",this.textareaListenerKeydown),this.textarea.removeEventListener("input",this.textareaListenerInput),this.textarea.removeEventListener("scroll",this.textareaListenerScroll),this.textareaResizeObserver.unobserve(this.textarea),this.textareaResizeObserver.disconnect(),this.textarea.removeEventListener("selectionchange",this.textareaListenerSelectionchange)}handleTextareaKeyDown(e){if(!e.defaultPrevented&&!e.repeat)if(e.ctrlKey||e.metaKey)"/"===e.key&&(this.toggleComment(),e.preventDefault());else if(this.isVisibleSuggestionView()){if("Tab"===e.key)this.hiddenSuggestionView(),this.insertValue("    "),e.preventDefault();else if("Escape"===e.key||"ArrowLeft"===e.key||"ArrowRight"===e.key||"ArrowUp"===e.key)this.hiddenSuggestionView();else if("ArrowDown"===e.key)this.focusSuggestionView(),e.preventDefault();else if("Enter"===e.key){const t=this.getSelectSuggestionWord(0);t&&(this.hiddenSuggestionView(),this.textarea.focus(),this.applySuggestionWordToTextarea(t),e.preventDefault())}}else"Tab"===e.key&&(this.insertValue("    "),e.preventDefault())}handleTextareaInput(e){this.requestTickAnimationFrame(),this.postWorkerInput()}handleTextareaScroll(e){this.requestTickAnimationFrame()}handleTextareaReSize(e){this.requestTickAnimationFrame()}handleTextareaSelectionchange(e){const t=this.textarea.selectionStart,i=this.textarea.selectionEnd,s=this.textarea.value,r=l(s,t),a=l(s,i),o=r.row,h=r.row<a.row&&0===a.column?a.row-1:a.row,c=this.textareaSelectionStart.row,g=this.textareaSelectionStart.row<this.textareaSelectionEnd.row&&0===this.textareaSelectionEnd.column?this.textareaSelectionEnd.row-1:this.textareaSelectionEnd.row;o===c&&h===g||(this.linenoViewCode.querySelectorAll("span:nth-of-type(n+"+(c+1)+"):nth-of-type(-n+"+(g+1)+")").forEach(e=>e.classList.toggle(n,!1)),this.linenoViewCode.querySelectorAll("span:nth-of-type(n+"+(o+1)+"):nth-of-type(-n+"+(h+1)+")").forEach(e=>e.classList.toggle(n,!0)),this.textareaSelectionStart=r,this.textareaSelectionEnd=a)}storeScrollSize(){const e=this.textarea.scrollWidth,t=this.textarea.scrollHeight;this.textareaScrollSize.width===e&&this.textareaScrollSize.height===t||(this.textareaScrollSize.width=e,this.textareaScrollSize.height=t,this.textareaScrollSize.dirty=!0)}reflectedScrollSize(){this.textareaScrollSize.dirty=!1}storeClientSize(){const e=this.textarea.clientWidth,t=this.textarea.clientHeight;this.textareaClientSize.width===e&&this.textareaClientSize.height===t||(this.textareaClientSize.width=e,this.textareaClientSize.height=t,this.textareaClientSize.dirty=!0)}reflectedClientSize(){this.textareaClientSize.dirty=!1}storeScrollPosition(){const e=this.textarea.scrollTop,t=this.textarea.scrollLeft;this.textareaScrollPosition.top!==e&&(this.textareaScrollPosition.top=e,this.textareaScrollPosition.dirty_top=!0),this.textareaScrollPosition.left!==t&&(this.textareaScrollPosition.left=t,this.textareaScrollPosition.dirty_left=!0)}reflectedScrollPosition(){this.textareaScrollPosition.dirty_top=!1,this.textareaScrollPosition.dirty_left=!1}toggleComment(){const e=this.textarea.selectionStart,t=this.textarea.selectionEnd,i=this.textarea.value,n=[i.substring(0,e).lastIndexOf("\n")].reduce((e,t)=>-1!==t?t+1:e,0),s=[i.substring(0,t).lastIndexOf("\n"),i.indexOf("\n",t)].reduce((e,i)=>-1!==i&&n<i&&t-1<=i&&i<e?i:e,i.length),r=i.substring(n,s).split("\n"),a=r.reduce((e,t)=>e||!t.trimStart().startsWith("//"),!1),o=r.map(e=>e.replace(/^(\s*)(.*)/,"$1").length).reduce((e,t,i)=>0===i||t<e?t:e,0);let h=e,l=t;if(a)for(let c=0,g=n;c<r.length;c++){const i=r[c];r[c]=" ".repeat(o)+"// "+i.substring(o),g<e&&(h+=3),g<t&&(l+=3),g+=i.length+1}else for(let c=0,g=n;c<r.length;c++){const i=r[c];r[c]=i.replace(/\/\/\s?/,i=>(g<e&&(h-=i.length),g<t&&(l-=i.length),"")),g+=i.length+1}this.textarea.value=i.substring(0,n)+r.join("\n")+i.substring(s),this.textarea.selectionStart=h,this.textarea.selectionEnd=l,this.requestTickAnimationFrame(),this.postWorkerUpdate()}insertValue(e,t,i){t??=this.textarea.selectionStart,i??=this.textarea.selectionEnd;const n=this.textarea.value;this.textarea.value=n.substring(0,t)+e+n.substring(i),this.textarea.selectionStart=this.textarea.selectionEnd=t+e.length,this.requestTickAnimationFrame(),this.postWorkerUpdate()}applySuggestionWordToTextarea(e){const t=this.textarea.value;let i=this.textarea.selectionStart,n=this.textarea.selectionEnd;for(let r=i-1;0<=r&&!h(t.charAt(r));i=r--);for(;n<t.length&&!h(t.charAt(n));n++);const s=e+(","!==t.charAt(n)?",":"");this.insertValue(s,i,n)}addSuggestionViewEvent(){this.suggestionViewSelect.addEventListener("keydown",this.suggestionViewListenerKeydown),document.addEventListener("click",this.suggestionViewListenerClick)}removeSuggestionViewEvent(){this.suggestionViewSelect.removeEventListener("keydown",this.suggestionViewListenerKeydown),document.removeEventListener("click",this.suggestionViewListenerClick)}handleSuggestionViewKeyDown(e){if(!e.defaultPrevented&&!e.repeat)if("Escape"===e.key)this.hiddenSuggestionView(),this.textarea.focus(),e.preventDefault();else if("Backspace"===e.key)this.hiddenSuggestionView(),this.textarea.focus(),e.preventDefault(),e.stopPropagation();else if("Enter"===e.key){const t=this.getSelectSuggestionWord();t&&(this.hiddenSuggestionView(),this.textarea.focus(),this.applySuggestionWordToTextarea(t),e.preventDefault())}}handleSuggestionViewClick(e){this.suggestionView.contains(e.target)||this.hiddenSuggestionView()}isVisibleSuggestionView(){return"visible"===this.suggestionView.style.visibility}visibleSuggestionView(){this.highlightViewCode.querySelector("span.caret")&&(this.isVisibleSuggestionView()||(this.suggestionView.style.visibility="visible"))}reflectCaretPositionToSuggestionView(){const e=this.highlightViewCode.querySelector("span.caret");e&&(this.suggestionView.style.top=e.offsetTop+e.offsetHeight-this.highlightView.scrollTop+"px",this.suggestionView.style.left=e.offsetLeft-this.highlightView.scrollLeft+"px")}hiddenSuggestionView(){this.isVisibleSuggestionView()&&(this.suggestionView.style.visibility="hidden")}focusSuggestionView(){this.isVisibleSuggestionView()&&(this.suggestionViewSelect.selectedIndex=0,this.suggestionViewSelect.focus())}getSelectSuggestionWord(e){return e??=this.suggestionViewSelect.selectedIndex,0<=e&&e<this.suggestionViewSelect.options.length?this.suggestionViewSelect.options[e].value:null}handleWorkerMessage(e){this.headerViewState.content!==e.data.headerViewHtml&&(this.headerViewState.content=e.data.headerViewHtml,this.headerViewState.dirty=!0,this.requestTickAnimationFrame()),this.linenoViewState.content!==e.data.linenoViewHtml&&(this.linenoViewState.content=e.data.linenoViewHtml,this.linenoViewState.dirty=!0,this.requestTickAnimationFrame()),this.highlightViewState.content!==e.data.highlightViewHtml&&(this.highlightViewState.content=e.data.highlightViewHtml,this.highlightViewState.rows=e.data.highlightViewHtml.split("\n"),this.highlightViewState.dirty=!0,this.requestTickAnimationFrame()),0<e.data.suggestionViewHtml.length?(this.suggestionViewSelect.innerHTML=e.data.suggestionViewHtml,this.suggestionViewSelect.selectedIndex=-1,this.visibleSuggestionView(),window.requestAnimationFrame(()=>{this.reflectCaretPositionToSuggestionView()})):this.hiddenSuggestionView()}postWorkerInput(){const e=this.textarea.selectionStart,t=this.textarea.selectionEnd,i=this.textarea.value;this.worker.port.postMessage({suggestion:!0,selectionStart:e,selectionEnd:t,text:i})}postWorkerUpdate(){this.worker.port.postMessage({suggestion:!1,selectionStart:this.textarea.selectionStart,selectionEnd:this.textarea.selectionEnd,text:this.textarea.value})}createContainer(){const e=document.createElement("div");return e.className=t,e}createHeaderView(e){const t=document.createElement("div");return t.className=s,e.appendChild(t),t}createHeaderViewSelect(e){const t=document.createElement("select");return e.appendChild(t),t}createLinenoView(e){const t=document.createElement("div");return t.className=i,e.appendChild(t),t}createLinenoViewPre(e){const t=document.createElement("pre");return e.appendChild(t),t}createLinenoViewCode(e){const t=document.createElement("code");return e.appendChild(t),t}createBodyContainer(e){const t=document.createElement("div");return t.className=r,e.appendChild(t),t}createHighlightView(e){const t=document.createElement("div");return t.className=a,e.appendChild(t),t}createHighlightViewPre(e){const t=document.createElement("pre");return e.appendChild(t),t}createHighlightViewCode(e){const t=document.createElement("code");return e.appendChild(t),t}createTextarea(e){const t=document.createElement("textarea");return t.className="comfy-multiline-input",e.appendChild(t),t}createSuggestionView(e){const t=document.createElement("div");return t.className=o,e.appendChild(t),t}createSuggestionViewSelect(e){const t=document.createElement("select");return t.setAttribute("size","10"),e.appendChild(t),t}};e.registerExtension({name:"yossq236.TagPromptNode",setup:async e=>{const t=document.createElement("link");t.rel="stylesheet",t.type="text/css",t.href="/extensions/tag_prompt/assets/index.css",document.head.appendChild(t)},getCustomWidgets:async e=>({MY_STRING:(e,t,i,n,s)=>{const r=new c,a=e.addDOMWidget(t,i[0],r.element,{getValue:()=>r.state,setValue:e=>{r.state=e}}),o=a.onRemove;return a.onRemove=()=>{r.unmount(),o?.call(a)},{widget:a,minWidth:400,minHeight:300}}})});
+import { app as e } from "/scripts/app.js";
+//#region src/editorWorker.ts?sharedworker&url
+var t = "/extensions/tag_prompt/assets/editorWorker.js", n = {
+	container: "_container_1r079_3",
+	linenoView: "_lineno-view_1r079_59",
+	selected: "_selected_1r079_61",
+	headerView: "_header-view_1r079_75",
+	bodyContainer: "_body-container_1r079_165",
+	highlightView: "_highlight-view_1r079_241",
+	suggestionView: "_suggestion-view_1r079_291"
+};
+//#endregion
+//#region src/utils.ts
+function r(e) {
+	return e === " " || e === "," || e === "\n" || 256 <= e.charCodeAt(0);
+}
+function i(e, t, n, r) {
+	let i = document.createElement(e);
+	return t && (i.className = t), n && Object.entries(n).forEach(([e, t]) => {
+		i.setAttribute(e, t);
+	}), r && r.forEach((e) => i.appendChild(e)), i;
+}
+//#endregion
+//#region src/editor.ts
+function a(e) {
+	return typeof e == "object" && !!e && "text" in e && "selectionStart" in e && "selectionEnd" in e && "scrollTop" in e && "scrollLeft" in e;
+}
+function o(e, t) {
+	let n = e.substring(0, t);
+	return {
+		position: t,
+		row: (n.match(/\n/g) || []).length,
+		column: t - n.lastIndexOf("\n") - 1
+	};
+}
+var s = class {
+	container;
+	headerView;
+	headerViewSelect;
+	headerViewListenerChange;
+	headerViewState;
+	linenoView;
+	linenoViewPre;
+	linenoViewCode;
+	linenoViewState;
+	bodyContainer;
+	highlightView;
+	highlightViewPre;
+	highlightViewCode;
+	highlightViewState;
+	textarea;
+	textareaListenerKeydown;
+	textareaListenerInput;
+	textareaListenerScroll;
+	textareaResizeObserver;
+	textareaListenerSelectionchange;
+	textareaScrollSize;
+	textareaClientSize;
+	textareaScrollPosition;
+	textareaSelectionStart;
+	textareaSelectionEnd;
+	suggestionView;
+	suggestionViewSelect;
+	suggestionViewListenerKeydown;
+	suggestionViewListenerClick;
+	worker;
+	tickAnimationFrameID;
+	constructor() {
+		this.container = i("div", n.container, void 0, [
+			this.headerView = i("div", n.headerView, void 0, [this.headerViewSelect = i("select")]),
+			this.linenoView = i("div", n.linenoView, void 0, [this.linenoViewPre = i("pre", void 0, void 0, [this.linenoViewCode = i("code")])]),
+			this.bodyContainer = i("div", n.bodyContainer, void 0, [
+				this.highlightView = i("div", n.highlightView, void 0, [this.highlightViewPre = i("pre", void 0, void 0, [this.highlightViewCode = i("code")])]),
+				this.textarea = i("textarea", "comfy-multiline-input"),
+				this.suggestionView = i("div", n.suggestionView, void 0, [this.suggestionViewSelect = i("select", void 0, { size: "10" })])
+			])
+		]), this.headerViewListenerChange = (e) => this.handleHeaderViewChange(e), this.headerViewState = {
+			content: "",
+			dirty: !1
+		}, this.linenoViewState = {
+			content: "",
+			rows: [],
+			dirty: !1
+		}, this.highlightViewState = {
+			content: "",
+			rows: [],
+			dirty: !1
+		}, this.textareaListenerKeydown = (e) => this.handleTextareaKeyDown(e), this.textareaListenerInput = (e) => this.handleTextareaInput(e), this.textareaListenerScroll = (e) => this.handleTextareaScroll(e), this.textareaResizeObserver = new ResizeObserver((e) => this.handleTextareaReSize(e)), this.textareaListenerSelectionchange = (e) => this.handleTextareaSelectionchange(e), this.textareaScrollSize = {
+			width: 0,
+			height: 0,
+			dirty: !1
+		}, this.textareaClientSize = {
+			width: 0,
+			height: 0,
+			dirty: !1
+		}, this.textareaScrollPosition = {
+			top: 0,
+			left: 0,
+			dirty_top: !1,
+			dirty_left: !1
+		}, this.textareaSelectionStart = {
+			position: 0,
+			column: 0,
+			row: 0
+		}, this.textareaSelectionEnd = {
+			position: 0,
+			column: 0,
+			row: 0
+		}, this.suggestionViewListenerKeydown = (e) => this.handleSuggestionViewKeyDown(e), this.suggestionViewListenerClick = (e) => this.handleSuggestionViewClick(e), this.worker = new SharedWorker(t), this.worker.port.onmessage = (e) => this.handleWorkerMessage(e), this.tickAnimationFrameID = 0;
+	}
+	get element() {
+		return this.container;
+	}
+	get state() {
+		return JSON.stringify({
+			text: this.textarea.value,
+			selectionStart: this.textarea.selectionStart,
+			selectionEnd: this.textarea.selectionEnd,
+			scrollTop: this.textareaScrollPosition.top,
+			scrollLeft: this.textareaScrollPosition.left
+		});
+	}
+	set state(e) {
+		let t = {
+			text: e,
+			selectionStart: 0,
+			selectionEnd: 0,
+			scrollTop: 0,
+			scrollLeft: 0
+		};
+		try {
+			let n = JSON.parse(e);
+			a(n) && (t = n);
+		} catch {}
+		let n = this.textarea.value !== t.text;
+		this.textarea.value = t.text, this.textarea.selectionStart = t.selectionStart, this.textarea.selectionEnd = t.selectionEnd, (this.textareaScrollPosition.top !== t.scrollTop || this.textareaScrollPosition.left !== t.scrollLeft) && window.requestAnimationFrame(() => {
+			this.textarea.scrollTop = t.scrollTop, this.textarea.scrollLeft = t.scrollLeft;
+		}), n && this.postWorkerUpdate();
+	}
+	mount(e) {
+		this.tickAnimationFrameID = 0, this.addHeaderViewEvent(), this.addTextareaEvent(), this.addSuggestionViewEvent(), e && e.appendChild(this.container);
+	}
+	unmount() {
+		this.worker.port.close(), this.worker.port.onmessage = null, this.removeSuggestionViewEvent(), this.removeTextareaEvent(), this.removeHeaderViewEvent(), this.suggestionViewSelect.parentElement?.removeChild(this.suggestionViewSelect), this.suggestionView.parentElement?.removeChild(this.suggestionView), this.textarea.parentElement?.removeChild(this.textarea), this.highlightViewCode.parentElement?.removeChild(this.highlightViewCode), this.highlightViewPre.parentElement?.removeChild(this.highlightViewPre), this.highlightView.parentElement?.removeChild(this.highlightView), this.bodyContainer.parentElement?.removeChild(this.bodyContainer), this.linenoViewCode.parentElement?.removeChild(this.linenoViewCode), this.linenoViewPre.parentElement?.removeChild(this.linenoViewPre), this.linenoView.parentElement?.removeChild(this.linenoView), this.headerViewSelect.parentElement?.removeChild(this.headerViewSelect), this.headerView.parentElement?.removeChild(this.headerView), this.container.parentElement?.removeChild(this.container);
+	}
+	requestTickAnimationFrame() {
+		this.tickAnimationFrameID === 0 && (this.tickAnimationFrameID = window.requestAnimationFrame((e) => this.handleTickAnimationFrame(e)));
+	}
+	handleTickAnimationFrame(e) {
+		this.tickAnimationFrameID = 0, this.storeScrollSize(), this.storeClientSize(), this.storeScrollPosition(), this.reflectTextContentToHeaderView(), this.reflectScrollSizeToLinenoView(), this.reflectClientSizeToLinenoView(), this.reflectScrollPositionToLinenoView(), this.reflectTextContentToLinenoView(), this.reflectScrollSizeToHighlightView(), this.reflectClientSizeToHighlightView(), this.reflectScrollPositionToHighlightView(), this.reflectTextContentToHighlightView(), this.reflectedScrollSize(), this.reflectedClientSize(), this.reflectedScrollPosition();
+	}
+	addHeaderViewEvent() {
+		this.headerViewSelect.addEventListener("change", this.headerViewListenerChange);
+	}
+	removeHeaderViewEvent() {
+		this.headerViewSelect.removeEventListener("change", this.headerViewListenerChange);
+	}
+	handleHeaderViewChange(e) {
+		let t = parseInt(e.target.value);
+		if (0 <= t && t < this.linenoViewState.rows.length) {
+			let e = this.linenoViewState.rows[t].top;
+			window.requestAnimationFrame(() => {
+				this.textarea.scrollTop = e;
+			});
+		}
+	}
+	reflectTextContentToHeaderView() {
+		this.headerViewState.dirty && (this.headerViewSelect.innerHTML = this.headerViewState.content, this.headerViewState.dirty = !1);
+	}
+	reflectScrollSizeToLinenoView() {
+		this.textareaScrollSize.dirty && (this.linenoViewPre.style.height = this.textareaScrollSize.height + "px");
+	}
+	reflectClientSizeToLinenoView() {
+		this.textareaClientSize.dirty && (this.linenoView.style.height = this.textareaClientSize.height + "px");
+	}
+	reflectScrollPositionToLinenoView() {
+		this.textareaScrollPosition.dirty_top && (this.linenoView.scrollTop = this.textareaScrollPosition.top);
+	}
+	reflectTextContentToLinenoView() {
+		if (this.linenoViewState.dirty) {
+			this.linenoViewCode.innerHTML = this.linenoViewState.content;
+			let e = this.linenoViewCode.querySelectorAll("span"), t = e.length, n = [];
+			for (let r = 0; r < t; r++) {
+				let t = e[r];
+				n.push({
+					top: t.offsetTop,
+					bottom: t.offsetTop + t.offsetHeight
+				});
+			}
+			this.linenoViewState.rows = n, this.linenoViewState.dirty = !1;
+		}
+	}
+	reflectScrollSizeToHighlightView() {
+		this.textareaScrollSize.dirty && (this.highlightViewPre.style.width = this.textareaScrollSize.width + "px");
+	}
+	reflectClientSizeToHighlightView() {
+		this.textareaClientSize.dirty && (this.highlightView.style.width = this.textareaClientSize.width + "px", this.highlightView.style.height = this.textareaClientSize.height + "px");
+	}
+	reflectScrollPositionToHighlightView() {
+		this.textareaScrollPosition.dirty_left && (this.highlightView.scrollLeft = this.textareaScrollPosition.left);
+	}
+	reflectTextContentToHighlightView() {
+		if (this.textareaScrollPosition.dirty_top || this.textareaClientSize.dirty || this.highlightViewState.dirty) {
+			let e = this.textareaScrollPosition.top, t = e + this.textareaClientSize.height, n = Math.max(0, this.linenoViewState.rows.findIndex((t) => e < t.bottom)), r = Math.max(0, this.linenoViewState.rows.findLastIndex((e) => e.top < t));
+			this.highlightViewCode.innerHTML = this.highlightViewState.rows.filter((e, t) => n <= t && t <= r).join("\n"), this.highlightView.scrollTop = this.linenoViewState.rows.length === 0 ? 0 : e - this.linenoViewState.rows[n].top, this.highlightViewState.dirty = !1;
+		}
+	}
+	addTextareaEvent() {
+		this.textarea.addEventListener("keydown", this.textareaListenerKeydown), this.textarea.addEventListener("input", this.textareaListenerInput), this.textarea.addEventListener("scroll", this.textareaListenerScroll), this.textareaResizeObserver.observe(this.textarea), this.textarea.addEventListener("selectionchange", this.textareaListenerSelectionchange);
+	}
+	removeTextareaEvent() {
+		this.textarea.removeEventListener("keydown", this.textareaListenerKeydown), this.textarea.removeEventListener("input", this.textareaListenerInput), this.textarea.removeEventListener("scroll", this.textareaListenerScroll), this.textareaResizeObserver.unobserve(this.textarea), this.textareaResizeObserver.disconnect(), this.textarea.removeEventListener("selectionchange", this.textareaListenerSelectionchange);
+	}
+	handleTextareaKeyDown(e) {
+		if (!(e.defaultPrevented || e.repeat)) if (e.ctrlKey || e.metaKey) e.key === "/" && (this.toggleComment(), e.preventDefault());
+		else if (this.isVisibleSuggestionView()) {
+			if (e.key === "Tab") this.hiddenSuggestionView(), this.insertValue("    "), e.preventDefault();
+			else if (e.key === "Escape" || e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "ArrowUp") this.hiddenSuggestionView();
+			else if (e.key === "ArrowDown") this.focusSuggestionView(), e.preventDefault();
+			else if (e.key === "Enter") {
+				let t = this.getSelectSuggestionWord(0);
+				t && (this.hiddenSuggestionView(), this.textarea.focus(), this.applySuggestionWordToTextarea(t), e.preventDefault());
+			}
+		} else e.key === "Tab" && (this.insertValue("    "), e.preventDefault());
+	}
+	handleTextareaInput(e) {
+		this.requestTickAnimationFrame(), this.postWorkerInput();
+	}
+	handleTextareaScroll(e) {
+		this.requestTickAnimationFrame();
+	}
+	handleTextareaReSize(e) {
+		this.requestTickAnimationFrame();
+	}
+	handleTextareaSelectionchange(e) {
+		let t = this.textarea.selectionStart, r = this.textarea.selectionEnd, i = this.textarea.value, a = o(i, t), s = o(i, r), c = a.row, l = a.row < s.row && s.column === 0 ? s.row - 1 : s.row, u = this.textareaSelectionStart.row, d = this.textareaSelectionStart.row < this.textareaSelectionEnd.row && this.textareaSelectionEnd.column === 0 ? this.textareaSelectionEnd.row - 1 : this.textareaSelectionEnd.row;
+		(c !== u || l !== d) && (this.linenoViewCode.querySelectorAll("span:nth-of-type(n+" + (u + 1) + "):nth-of-type(-n+" + (d + 1) + ")").forEach((e) => e.classList.toggle(n.selected, !1)), this.linenoViewCode.querySelectorAll("span:nth-of-type(n+" + (c + 1) + "):nth-of-type(-n+" + (l + 1) + ")").forEach((e) => e.classList.toggle(n.selected, !0)), this.textareaSelectionStart = a, this.textareaSelectionEnd = s);
+	}
+	storeScrollSize() {
+		let e = this.textarea.scrollWidth, t = this.textarea.scrollHeight;
+		(this.textareaScrollSize.width !== e || this.textareaScrollSize.height !== t) && (this.textareaScrollSize.width = e, this.textareaScrollSize.height = t, this.textareaScrollSize.dirty = !0);
+	}
+	reflectedScrollSize() {
+		this.textareaScrollSize.dirty = !1;
+	}
+	storeClientSize() {
+		let e = this.textarea.clientWidth, t = this.textarea.clientHeight;
+		(this.textareaClientSize.width !== e || this.textareaClientSize.height !== t) && (this.textareaClientSize.width = e, this.textareaClientSize.height = t, this.textareaClientSize.dirty = !0);
+	}
+	reflectedClientSize() {
+		this.textareaClientSize.dirty = !1;
+	}
+	storeScrollPosition() {
+		let e = this.textarea.scrollTop, t = this.textarea.scrollLeft;
+		this.textareaScrollPosition.top !== e && (this.textareaScrollPosition.top = e, this.textareaScrollPosition.dirty_top = !0), this.textareaScrollPosition.left !== t && (this.textareaScrollPosition.left = t, this.textareaScrollPosition.dirty_left = !0);
+	}
+	reflectedScrollPosition() {
+		this.textareaScrollPosition.dirty_top = !1, this.textareaScrollPosition.dirty_left = !1;
+	}
+	toggleComment() {
+		let e = this.textarea.selectionStart, t = this.textarea.selectionEnd, n = this.textarea.value, r = [n.substring(0, e).lastIndexOf("\n")].reduce((e, t) => t === -1 ? e : t + 1, 0), i = [n.substring(0, t).lastIndexOf("\n"), n.indexOf("\n", t)].reduce((e, n) => n !== -1 && r < n && t - 1 <= n && n < e ? n : e, n.length), a = n.substring(r, i).split("\n"), o = a.reduce((e, t) => e || !t.trimStart().startsWith("//"), !1), s = a.map((e) => e.replace(/^(\s*)(.*)/, "$1").length).reduce((e, t, n) => n === 0 || t < e ? t : e, 0), c = e, l = t;
+		if (o) for (let n = 0, i = r; n < a.length; n++) {
+			let r = a[n];
+			a[n] = " ".repeat(s) + "// " + r.substring(s), i < e && (c += 3), i < t && (l += 3), i += r.length + 1;
+		}
+		else for (let n = 0, i = r; n < a.length; n++) {
+			let r = a[n];
+			a[n] = r.replace(/\/\/\s?/, (n) => (i < e && (c -= n.length), i < t && (l -= n.length), "")), i += r.length + 1;
+		}
+		this.textarea.value = n.substring(0, r) + a.join("\n") + n.substring(i), this.textarea.selectionStart = c, this.textarea.selectionEnd = l, this.requestTickAnimationFrame(), this.postWorkerUpdate();
+	}
+	insertValue(e, t, n) {
+		t ??= this.textarea.selectionStart, n ??= this.textarea.selectionEnd;
+		let r = this.textarea.value;
+		this.textarea.value = r.substring(0, t) + e + r.substring(n), this.textarea.selectionStart = this.textarea.selectionEnd = t + e.length, this.requestTickAnimationFrame(), this.postWorkerUpdate();
+	}
+	applySuggestionWordToTextarea(e) {
+		let t = this.textarea.value, n = this.textarea.selectionStart, i = this.textarea.selectionEnd;
+		for (let e = n - 1; 0 <= e && !r(t.charAt(e)); n = e--);
+		for (; i < t.length && !r(t.charAt(i)); i++);
+		let a = e + (t.charAt(i) === "," ? "" : ",");
+		this.insertValue(a, n, i);
+	}
+	addSuggestionViewEvent() {
+		this.suggestionViewSelect.addEventListener("keydown", this.suggestionViewListenerKeydown), document.addEventListener("click", this.suggestionViewListenerClick);
+	}
+	removeSuggestionViewEvent() {
+		this.suggestionViewSelect.removeEventListener("keydown", this.suggestionViewListenerKeydown), document.removeEventListener("click", this.suggestionViewListenerClick);
+	}
+	handleSuggestionViewKeyDown(e) {
+		if (!(e.defaultPrevented || e.repeat)) {
+			if (e.key === "Escape") this.hiddenSuggestionView(), this.textarea.focus(), e.preventDefault();
+			else if (e.key === "Backspace") this.hiddenSuggestionView(), this.textarea.focus(), e.preventDefault(), e.stopPropagation();
+			else if (e.key === "Enter") {
+				let t = this.getSelectSuggestionWord();
+				t && (this.hiddenSuggestionView(), this.textarea.focus(), this.applySuggestionWordToTextarea(t), e.preventDefault());
+			}
+		}
+	}
+	handleSuggestionViewClick(e) {
+		this.suggestionView.contains(e.target) || this.hiddenSuggestionView();
+	}
+	isVisibleSuggestionView() {
+		return this.suggestionView.style.visibility === "visible";
+	}
+	visibleSuggestionView() {
+		this.highlightViewCode.querySelector("span.caret") && (this.isVisibleSuggestionView() || (this.suggestionView.style.visibility = "visible"));
+	}
+	reflectCaretPositionToSuggestionView() {
+		let e = this.highlightViewCode.querySelector("span.caret");
+		e && (this.suggestionView.style.top = e.offsetTop + e.offsetHeight - this.highlightView.scrollTop + "px", this.suggestionView.style.left = e.offsetLeft - this.highlightView.scrollLeft + "px");
+	}
+	hiddenSuggestionView() {
+		this.isVisibleSuggestionView() && (this.suggestionView.style.visibility = "hidden");
+	}
+	focusSuggestionView() {
+		this.isVisibleSuggestionView() && (this.suggestionViewSelect.selectedIndex = 0, this.suggestionViewSelect.focus());
+	}
+	getSelectSuggestionWord(e) {
+		return e ??= this.suggestionViewSelect.selectedIndex, 0 <= e && e < this.suggestionViewSelect.options.length ? this.suggestionViewSelect.options[e].value : null;
+	}
+	handleWorkerMessage(e) {
+		this.headerViewState.content !== e.data.headerViewHtml && (this.headerViewState.content = e.data.headerViewHtml, this.headerViewState.dirty = !0, this.requestTickAnimationFrame()), this.linenoViewState.content !== e.data.linenoViewHtml && (this.linenoViewState.content = e.data.linenoViewHtml, this.linenoViewState.dirty = !0, this.requestTickAnimationFrame()), this.highlightViewState.content !== e.data.highlightViewHtml && (this.highlightViewState.content = e.data.highlightViewHtml, this.highlightViewState.rows = e.data.highlightViewHtml.split("\n"), this.highlightViewState.dirty = !0, this.requestTickAnimationFrame()), 0 < e.data.suggestionViewHtml.length ? (this.suggestionViewSelect.innerHTML = e.data.suggestionViewHtml, this.suggestionViewSelect.selectedIndex = -1, this.visibleSuggestionView(), window.requestAnimationFrame(() => {
+			this.reflectCaretPositionToSuggestionView();
+		})) : this.hiddenSuggestionView();
+	}
+	postWorkerInput() {
+		let e = this.textarea.selectionStart, t = this.textarea.selectionEnd, n = this.textarea.value;
+		this.worker.port.postMessage({
+			suggestion: !0,
+			selectionStart: e,
+			selectionEnd: t,
+			text: n
+		});
+	}
+	postWorkerUpdate() {
+		this.worker.port.postMessage({
+			suggestion: !1,
+			selectionStart: this.textarea.selectionStart,
+			selectionEnd: this.textarea.selectionEnd,
+			text: this.textarea.value
+		});
+	}
+};
+//#endregion
+//#region src/index.ts
+e.registerExtension({
+	name: "yossq236.TagPromptNode",
+	setup: async (e) => {
+		let t = document.createElement("link");
+		t.rel = "stylesheet", t.type = "text/css", t.href = "/extensions/tag_prompt/assets/index.css", document.head.appendChild(t);
+	},
+	getCustomWidgets: async (e) => ({ MY_STRING: (e, t, n, r, i) => {
+		let a = new s();
+		a.mount();
+		let o = e.addDOMWidget(t, n[0], a.element, {
+			getValue: () => a.state,
+			setValue: (e) => {
+				a.state = e;
+			}
+		}), c = o.onRemove;
+		return o.onRemove = () => {
+			a.unmount(), c?.call(o);
+		}, {
+			widget: o,
+			minWidth: 400,
+			minHeight: 300
+		};
+	} })
+});
+//#endregion
