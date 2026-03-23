@@ -136,7 +136,7 @@ export class Editor {
                     ])),
                 ])),
                 // create textarea
-                (this.textarea = el('textarea', 'comfy-multiline-input')),
+                (this.textarea = el('textarea', 'comfy-multiline-input',{"data-capture-wheel": "true"})), // It seems data-capture-wheel="true" is required to capture wheel events in Node 2.0.🖕
                 // create suggestion view
                 (this.suggestionView = el('div', EditorStyle.suggestionView, undefined, [
                     (this.suggestionViewSelect = el('select', undefined, {'size': '10'})),

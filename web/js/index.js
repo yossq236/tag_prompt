@@ -72,7 +72,7 @@ var s = class {
 			this.linenoView = i("div", n.linenoView, void 0, [this.linenoViewPre = i("pre", void 0, void 0, [this.linenoViewCode = i("code")])]),
 			this.bodyContainer = i("div", n.bodyContainer, void 0, [
 				this.highlightView = i("div", n.highlightView, void 0, [this.highlightViewPre = i("pre", void 0, void 0, [this.highlightViewCode = i("code")])]),
-				this.textarea = i("textarea", "comfy-multiline-input"),
+				this.textarea = i("textarea", "comfy-multiline-input", { "data-capture-wheel": "true" }),
 				this.suggestionView = i("div", n.suggestionView, void 0, [this.suggestionViewSelect = i("select", void 0, { size: "10" })])
 			])
 		]), this.headerViewListenerChange = (e) => this.handleHeaderViewChange(e), this.headerViewState = {
