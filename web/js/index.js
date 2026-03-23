@@ -52,6 +52,7 @@ var s = class {
 	textareaListenerKeydown;
 	textareaListenerInput;
 	textareaListenerScroll;
+	textareaListenerWheel;
 	textareaResizeObserver;
 	textareaListenerSelectionchange;
 	textareaScrollSize;
@@ -85,7 +86,7 @@ var s = class {
 			content: "",
 			rows: [],
 			dirty: !1
-		}, this.textareaListenerKeydown = (e) => this.handleTextareaKeyDown(e), this.textareaListenerInput = (e) => this.handleTextareaInput(e), this.textareaListenerScroll = (e) => this.handleTextareaScroll(e), this.textareaResizeObserver = new ResizeObserver((e) => this.handleTextareaReSize(e)), this.textareaListenerSelectionchange = (e) => this.handleTextareaSelectionchange(e), this.textareaScrollSize = {
+		}, this.textareaListenerKeydown = (e) => this.handleTextareaKeyDown(e), this.textareaListenerInput = (e) => this.handleTextareaInput(e), this.textareaListenerScroll = (e) => this.handleTextareaScroll(e), this.textareaListenerWheel = (e) => this.handleTextareaWheel(e), this.textareaResizeObserver = new ResizeObserver((e) => this.handleTextareaReSize(e)), this.textareaListenerSelectionchange = (e) => this.handleTextareaSelectionchange(e), this.textareaScrollSize = {
 			width: 0,
 			height: 0,
 			dirty: !1
@@ -209,10 +210,10 @@ var s = class {
 		}
 	}
 	addTextareaEvent() {
-		this.textarea.addEventListener("keydown", this.textareaListenerKeydown), this.textarea.addEventListener("input", this.textareaListenerInput), this.textarea.addEventListener("scroll", this.textareaListenerScroll), this.textareaResizeObserver.observe(this.textarea), this.textarea.addEventListener("selectionchange", this.textareaListenerSelectionchange);
+		this.textarea.addEventListener("keydown", this.textareaListenerKeydown), this.textarea.addEventListener("input", this.textareaListenerInput), this.textarea.addEventListener("scroll", this.textareaListenerScroll), this.textarea.addEventListener("wheel", this.textareaListenerWheel), this.textareaResizeObserver.observe(this.textarea), this.textarea.addEventListener("selectionchange", this.textareaListenerSelectionchange);
 	}
 	removeTextareaEvent() {
-		this.textarea.removeEventListener("keydown", this.textareaListenerKeydown), this.textarea.removeEventListener("input", this.textareaListenerInput), this.textarea.removeEventListener("scroll", this.textareaListenerScroll), this.textareaResizeObserver.unobserve(this.textarea), this.textareaResizeObserver.disconnect(), this.textarea.removeEventListener("selectionchange", this.textareaListenerSelectionchange);
+		this.textarea.removeEventListener("keydown", this.textareaListenerKeydown), this.textarea.removeEventListener("input", this.textareaListenerInput), this.textarea.removeEventListener("scroll", this.textareaListenerScroll), this.textarea.removeEventListener("wheel", this.textareaListenerWheel), this.textareaResizeObserver.unobserve(this.textarea), this.textareaResizeObserver.disconnect(), this.textarea.removeEventListener("selectionchange", this.textareaListenerSelectionchange);
 	}
 	handleTextareaKeyDown(e) {
 		if (!(e.defaultPrevented || e.repeat)) if (e.ctrlKey || e.metaKey) e.key === "/" && (this.toggleComment(), e.preventDefault());
@@ -231,6 +232,11 @@ var s = class {
 	}
 	handleTextareaScroll(e) {
 		this.requestTickAnimationFrame();
+	}
+	handleTextareaWheel(e) {
+		window.requestAnimationFrame(() => {
+			e.target.scrollTop += e.deltaY, e.target.scrollLeft += e.deltaX;
+		}), e.preventDefault(), e.stopPropagation();
 	}
 	handleTextareaReSize(e) {
 		this.requestTickAnimationFrame();
