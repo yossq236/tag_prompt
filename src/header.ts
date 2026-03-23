@@ -91,6 +91,6 @@ function summaryHeaders(tokens: Array<string>): Array<Header> {
 export function getHeaderViewHtml(code: string): string {
     const tokens = splitTokens(code);
     const headers = summaryHeaders(tokens);
-    return headers.map<string>(v => '<option value="' + v.row + '">' + v.label + ((0 < v.active) ? ' [*]' : '') + '</option>').join('\n');
+    return headers.map<string>(v => '<option value="' + v.row + '">' + ((0 < v.active) ? ' [*]&nbsp;' : '&nbsp;&nbsp;&nbsp;&nbsp;') + v.label.trim() + '</option>').join('\n');
 }
 
