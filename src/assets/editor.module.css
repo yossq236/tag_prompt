@@ -154,7 +154,7 @@
 
     visibility: hidden;
     
-    select {
+    > select {
         font-size: var(--comfy-textarea-font-size);
         background: var(--comfy-input-bg);
         color: var(--input-text);

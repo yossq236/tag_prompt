@@ -1,13 +1,13 @@
 import { app as e } from "/scripts/app.js";
 //#region src/editorWorker.ts?sharedworker&url
 var t = "/extensions/tag_prompt/assets/editorWorker.js", n = {
-	container: "_container_1r079_3",
-	linenoView: "_lineno-view_1r079_59",
-	selected: "_selected_1r079_61",
-	headerView: "_header-view_1r079_75",
-	bodyContainer: "_body-container_1r079_165",
-	highlightView: "_highlight-view_1r079_241",
-	suggestionView: "_suggestion-view_1r079_291"
+	container: "_container_4j5kq_3",
+	linenoView: "_lineno-view_4j5kq_59",
+	selected: "_selected_4j5kq_61",
+	headerView: "_header-view_4j5kq_75",
+	bodyContainer: "_body-container_4j5kq_165",
+	highlightView: "_highlight-view_4j5kq_241",
+	suggestionView: "_suggestion-view_4j5kq_291"
 };
 //#endregion
 //#region src/utils.ts
@@ -165,7 +165,10 @@ var s = class {
 		}
 	}
 	reflectTextContentToHeaderView() {
-		this.headerViewState.dirty && (this.headerViewSelect.innerHTML = this.headerViewState.content, this.headerViewState.dirty = !1);
+		if (this.headerViewState.dirty) {
+			let e = this.headerViewSelect.selectedIndex;
+			this.headerViewSelect.innerHTML = this.headerViewState.content, this.headerViewSelect.selectedIndex = e, this.headerViewState.dirty = !1;
+		}
 	}
 	reflectScrollSizeToLinenoView() {
 		this.textareaScrollSize.dirty && (this.linenoViewPre.style.height = this.textareaScrollSize.height + "px");
@@ -300,15 +303,15 @@ var s = class {
 	handleSuggestionViewClick(e) {
 		this.suggestionView.contains(e.target) || this.hiddenSuggestionView();
 	}
+	reflectCaretPositionToSuggestionView() {
+		let e = this.highlightViewCode.querySelector("span.caret");
+		e && (this.suggestionView.style.top = e.offsetTop + e.offsetHeight - this.highlightView.scrollTop + "px", this.suggestionView.style.left = e.offsetLeft - this.highlightView.scrollLeft + "px");
+	}
 	isVisibleSuggestionView() {
 		return this.suggestionView.style.visibility === "visible";
 	}
 	visibleSuggestionView() {
 		this.highlightViewCode.querySelector("span.caret") && (this.isVisibleSuggestionView() || (this.suggestionView.style.visibility = "visible"));
-	}
-	reflectCaretPositionToSuggestionView() {
-		let e = this.highlightViewCode.querySelector("span.caret");
-		e && (this.suggestionView.style.top = e.offsetTop + e.offsetHeight - this.highlightView.scrollTop + "px", this.suggestionView.style.left = e.offsetLeft - this.highlightView.scrollLeft + "px");
 	}
 	hiddenSuggestionView() {
 		this.isVisibleSuggestionView() && (this.suggestionView.style.visibility = "hidden");

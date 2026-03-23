@@ -319,7 +319,9 @@ export class Editor {
 
     private reflectTextContentToHeaderView() {
         if (this.headerViewState.dirty) {
+            const selected = this.headerViewSelect.selectedIndex;
             this.headerViewSelect.innerHTML = this.headerViewState.content;
+            this.headerViewSelect.selectedIndex = selected;
             this.headerViewState.dirty = false;
         }
     }
@@ -631,6 +633,14 @@ export class Editor {
         }
     }
 
+    private reflectCaretPositionToSuggestionView() {
+        const caret = this.highlightViewCode.querySelector('span.caret') as HTMLSpanElement;
+        if (caret) {
+            this.suggestionView.style.top = (caret.offsetTop + caret.offsetHeight - this.highlightView.scrollTop) + 'px';
+            this.suggestionView.style.left = (caret.offsetLeft - this.highlightView.scrollLeft) + 'px';
+        }
+    }
+
     private isVisibleSuggestionView(): boolean {
         return this.suggestionView.style.visibility === 'visible';
     }
@@ -641,14 +651,6 @@ export class Editor {
             if (!this.isVisibleSuggestionView()) {
                 this.suggestionView.style.visibility = 'visible';
             }
-        }
-    }
-
-    private reflectCaretPositionToSuggestionView() {
-        const caret = this.highlightViewCode.querySelector('span.caret') as HTMLSpanElement;
-        if (caret) {
-            this.suggestionView.style.top = (caret.offsetTop + caret.offsetHeight - this.highlightView.scrollTop) + 'px';
-            this.suggestionView.style.left = (caret.offsetLeft - this.highlightView.scrollLeft) + 'px';
         }
     }
 
