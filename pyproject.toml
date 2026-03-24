@@ -28,7 +28,7 @@ Documentation = "https://github.com/yossq236/tag_prompt/wiki"
 "Bug Tracker" = "https://github.com/yossq236/tag_prompt/issues"
 
 [tool.comfy]
-PublisherId = ""
+PublisherId = "yossq236"
 DisplayName = "tag_prompt"
 Icon = ""
 includes = [] 
