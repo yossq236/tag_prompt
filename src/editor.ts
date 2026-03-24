@@ -94,7 +94,6 @@ export class Editor {
     private textareaListenerKeydown: (event: KeyboardEvent) => void;
     private textareaListenerInput: (event: Event) => void;
     private textareaListenerScroll: (event: Event) => void;
-    private textareaListenerWheel: (event: WheelEvent) => void;
     private textareaResizeObserver: ResizeObserver;
     private textareaListenerSelectionchange: (event: Event) => void;
     private textareaScrollSize: SizeState;
@@ -136,7 +135,7 @@ export class Editor {
                     ])),
                 ])),
                 // create textarea
-                (this.textarea = el('textarea', 'comfy-multiline-input',{"data-capture-wheel": "true"})), // It seems data-capture-wheel="true" is required to capture wheel events in Node 2.0.🖕
+                (this.textarea = el('textarea', 'comfy-multiline-input', {"data-capture-wheel": "true"})), // It seems data-capture-wheel="true" is required to capture wheel events in Node 2.0.
                 // create suggestion view
                 (this.suggestionView = el('div', EditorStyle.suggestionView, undefined, [
                     (this.suggestionViewSelect = el('select', undefined, {'size': '10'})),
@@ -156,7 +155,6 @@ export class Editor {
         this.textareaListenerKeydown = e => this.handleTextareaKeyDown(e);
         this.textareaListenerInput = e => this.handleTextareaInput(e);
         this.textareaListenerScroll = e => this.handleTextareaScroll(e);
-        this.textareaListenerWheel = e => this.handleTextareaWheel(e);
         this.textareaResizeObserver = new ResizeObserver(e => this.handleTextareaReSize(e));
         this.textareaListenerSelectionchange = e => this.handleTextareaSelectionchange(e);
         this.textareaScrollSize = {width: 0, height: 0, dirty: false};
@@ -402,7 +400,6 @@ export class Editor {
         this.textarea.addEventListener('keydown', this.textareaListenerKeydown);
         this.textarea.addEventListener('input', this.textareaListenerInput);
         this.textarea.addEventListener('scroll', this.textareaListenerScroll);
-        this.textarea.addEventListener('wheel', this.textareaListenerWheel);
         this.textareaResizeObserver.observe(this.textarea);
         this.textarea.addEventListener('selectionchange', this.textareaListenerSelectionchange);
     }
@@ -411,7 +408,6 @@ export class Editor {
         this.textarea.removeEventListener('keydown', this.textareaListenerKeydown);
         this.textarea.removeEventListener('input', this.textareaListenerInput);
         this.textarea.removeEventListener('scroll', this.textareaListenerScroll);
-        this.textarea.removeEventListener('wheel', this.textareaListenerWheel);
         this.textareaResizeObserver.unobserve(this.textarea);
         this.textareaResizeObserver.disconnect();
         this.textarea.removeEventListener('selectionchange', this.textareaListenerSelectionchange);
@@ -459,15 +455,6 @@ export class Editor {
 
     private handleTextareaScroll(_event: Event): void {
         this.requestTickAnimationFrame();
-    }
-
-    private handleTextareaWheel(event: WheelEvent): void {
-        window.requestAnimationFrame(() => {
-            (event.target as HTMLTextAreaElement).scrollTop += event.deltaY;
-            (event.target as HTMLTextAreaElement).scrollLeft += event.deltaX;
-        });
-        event.preventDefault();
-        event.stopPropagation();
     }
 
     private handleTextareaReSize(_entries: Array<ResizeObserverEntry>): void {
