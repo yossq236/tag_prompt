@@ -1,4 +1,4 @@
-function splitTokens(code: string): Array<string> {
+function split(code: string): Array<string> {
     const result = new Array<string>;
     const matches = code.matchAll(/[#]+|\/\/|\/\*|\*\/|\n/g);
     let cursor = 0;
@@ -19,16 +19,16 @@ function splitTokens(code: string): Array<string> {
 interface Header {
     row: number;
     label: string;
-    active: number;
+    activeChars: number;
 }
 
-function summaryHeaders(tokens: Array<string>): Array<Header> {
+function summary(tokens: Array<string>): Array<Header> {
     const result = new Array<Header>;
     let row = 0;
     let header = false;
     let lineComment = false;
     let blockComment = false;
-    let current = {row: 0, label: '', active: 0};
+    let current: Header = {row: 0, label: '', activeChars: 0};
     for (const token of tokens) {
         switch(token){
             case '//':
@@ -74,10 +74,10 @@ function summaryHeaders(tokens: Array<string>): Array<Header> {
                         if (current.label !== '') {
                             result.push(current);
                         }
-                        current = {row: row, label: token, active: 0};
+                        current = {row: row, label: token, activeChars: 0};
                     }
                 } else {
-                    current.active++;
+                    current.activeChars++;
                 }
                 break;
         }
@@ -89,8 +89,9 @@ function summaryHeaders(tokens: Array<string>): Array<Header> {
 }
 
 export function getHeaderViewHtml(code: string): string {
-    const tokens = splitTokens(code);
-    const headers = summaryHeaders(tokens);
-    return headers.map<string>(v => '<option value="' + v.row + '">' + ((0 < v.active) ? ' [*]&nbsp;' : '&nbsp;&nbsp;&nbsp;&nbsp;') + v.label.trim() + '</option>').join('\n');
+    const headers = summary(split(code));
+    const enable = '[*]&nbsp;';
+    const disable = '&nbsp;'.repeat(4);
+    return headers.map<string>(v => '<option value="' + v.row + '">' + ((0 < v.activeChars) ? enable : disable) + v.label.trim() + '</option>').join('\n');
 }
 
