@@ -106,7 +106,7 @@ var s = class {
 			position: 0,
 			column: 0,
 			row: 0
-		}, this.suggestionViewListenerKeydown = (e) => this.handleSuggestionViewKeyDown(e), this.suggestionViewListenerClick = (e) => this.handleSuggestionViewClick(e), this.worker = new SharedWorker(t), this.worker.port.onmessage = (e) => this.handleWorkerMessage(e), this.tickAnimationFrameID = 0;
+		}, this.suggestionViewListenerKeydown = (e) => this.handleSuggestionViewKeyDown(e), this.suggestionViewListenerClick = (e) => this.handleSuggestionViewClick(e), this.worker = new SharedWorker(t), this.worker.port.onmessage = (e) => this.handleWorkerMessage(e), this.tickAnimationFrameID = 0, this.addHeaderViewEvent(), this.addTextareaEvent(), this.addSuggestionViewEvent();
 	}
 	get element() {
 		return this.container;
@@ -137,10 +137,7 @@ var s = class {
 			this.textarea.scrollTop = t.scrollTop, this.textarea.scrollLeft = t.scrollLeft;
 		}), n && this.postWorkerUpdate();
 	}
-	mount(e) {
-		this.tickAnimationFrameID = 0, this.addHeaderViewEvent(), this.addTextareaEvent(), this.addSuggestionViewEvent(), e && e.appendChild(this.container);
-	}
-	unmount() {
+	remove() {
 		this.worker.port.close(), this.worker.port.onmessage = null, this.removeSuggestionViewEvent(), this.removeTextareaEvent(), this.removeHeaderViewEvent(), this.suggestionViewSelect.parentElement?.removeChild(this.suggestionViewSelect), this.suggestionView.parentElement?.removeChild(this.suggestionView), this.textarea.parentElement?.removeChild(this.textarea), this.highlightViewCode.parentElement?.removeChild(this.highlightViewCode), this.highlightViewPre.parentElement?.removeChild(this.highlightViewPre), this.highlightView.parentElement?.removeChild(this.highlightView), this.bodyContainer.parentElement?.removeChild(this.bodyContainer), this.linenoViewCode.parentElement?.removeChild(this.linenoViewCode), this.linenoViewPre.parentElement?.removeChild(this.linenoViewPre), this.linenoView.parentElement?.removeChild(this.linenoView), this.headerViewSelect.parentElement?.removeChild(this.headerViewSelect), this.headerView.parentElement?.removeChild(this.headerView), this.container.parentElement?.removeChild(this.container);
 	}
 	requestTickAnimationFrame() {
@@ -354,16 +351,14 @@ e.registerExtension({
 		t.rel = "stylesheet", t.type = "text/css", t.href = "/extensions/tag_prompt/assets/index.css", document.head.appendChild(t);
 	},
 	getCustomWidgets: async (e) => ({ MY_STRING: (e, t, n, r, i) => {
-		let a = new s();
-		a.mount();
-		let o = e.addDOMWidget(t, n[0], a.element, {
+		let a = new s(), o = e.addDOMWidget(t, n[0], a.element, {
 			getValue: () => a.state,
 			setValue: (e) => {
 				a.state = e;
 			}
 		}), c = o.onRemove;
 		return o.onRemove = () => {
-			a.unmount(), c?.call(o);
+			a.remove(), c?.call(o);
 		}, {
 			widget: o,
 			minWidth: 400,

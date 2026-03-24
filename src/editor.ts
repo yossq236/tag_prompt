@@ -170,6 +170,12 @@ export class Editor {
         this.worker.port.onmessage = e => this.handleWorkerMessage(e);
         // initialize animation frame
         this.tickAnimationFrameID = 0;
+        // add event header view
+        this.addHeaderViewEvent();
+        // add event textarea
+        this.addTextareaEvent();
+        // add event suggestion view
+        this.addSuggestionViewEvent();
     }
 
     // property
@@ -216,24 +222,9 @@ export class Editor {
         }
     }
 
-    // mount / unmount 
+    //  remove
 
-    public mount(parent?: HTMLElement) {
-        // initialize animation frame
-        this.tickAnimationFrameID = 0;
-        // add event header view
-        this.addHeaderViewEvent();
-        // add event textarea
-        this.addTextareaEvent();
-        // add event suggestion view
-        this.addSuggestionViewEvent();
-        // mount
-        if (parent) {
-            parent.appendChild(this.container);
-        }
-    }
-
-    public unmount() {
+    public remove() {
         // close worker
         this.worker.port.close();
         this.worker.port.onmessage = null;
