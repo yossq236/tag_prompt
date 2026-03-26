@@ -14,8 +14,8 @@ const extension: ComfyExtension = {
     getCustomWidgets: async (_app) => {
         return {
             MY_STRING: (node, inputName, inputData, _app, _widgetName) => {
-                const editor = new Editor();
-                const widget = (node as any).addDOMWidget(inputName, inputData[0], editor.element, {
+                const editor = document.createElement('yossq236-custom-editor-element') as Editor;
+                const widget = (node as any).addDOMWidget(inputName, inputData[0], editor, {
                     getValue: () => {
                         return editor.state;
                     },
@@ -23,11 +23,6 @@ const extension: ComfyExtension = {
                         editor.state = newValue;
                     },
                 });
-                const originalOnRemove = widget.onRemove;
-                widget.onRemove = () => {
-                    editor.remove();
-                    originalOnRemove?.call(widget);
-                };
                 return {widget: widget, minWidth: 400, minHeight: 300};
             }
         }

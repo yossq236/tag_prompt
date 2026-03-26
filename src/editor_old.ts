@@ -11,11 +11,6 @@ interface EditorState {
     scrollLeft: number;
 }
 
-interface ContentState {
-    value: string;
-    dirty: boolean;
-}
-
 interface SizeState {
     width: number;
     height: number;
@@ -35,14 +30,14 @@ interface Cursor {
     row: number;
 }
 
-interface HeaderViewState {
-    content: string;
-    dirty: boolean;
-}
-
 interface RowPosition {
     top: number;
     bottom: number;
+}
+
+interface HeaderViewState {
+    content: string;
+    dirty: boolean;
 }
 
 interface LinenoViewState {
@@ -75,42 +70,41 @@ function getCursor(text: string, position: number): Cursor {
 //     return text.substring(word_start, word_end);
 // }
 
-export class Editor extends HTMLElement {
+export class Editor {
     // containor
-    private container: HTMLElement | undefined;
+    private container: HTMLElement;
     // header view
-    private headerView: HTMLElement | undefined;
-    private headerViewSelect: HTMLSelectElement | undefined;
+    private headerView: HTMLElement;
+    private headerViewSelect: HTMLSelectElement;
     private headerViewListenerChange: (event: Event) => void;
     private headerViewState: HeaderViewState;
     // lineno view
-    private linenoView: HTMLElement | undefined;
-    private linenoViewPre: HTMLElement | undefined;
-    private linenoViewCode: HTMLElement | undefined;
+    private linenoView: HTMLElement;
+    private linenoViewPre: HTMLElement;
+    private linenoViewCode: HTMLElement;
     private linenoViewState: LinenoViewState;
     // body containor
-    private bodyContainer: HTMLElement | undefined;
+    private bodyContainer: HTMLElement;
     // highlight view
-    private highlightView: HTMLElement | undefined;
-    private highlightViewPre: HTMLElement | undefined;
-    private highlightViewCode: HTMLElement | undefined;
+    private highlightView: HTMLElement;
+    private highlightViewPre: HTMLElement;
+    private highlightViewCode: HTMLElement;
     private highlightViewState: HighlightViewState;
     // textarea
-    private textarea: HTMLTextAreaElement | undefined;
+    private textarea: HTMLTextAreaElement;
     private textareaListenerKeydown: (event: KeyboardEvent) => void;
     private textareaListenerInput: (event: Event) => void;
     private textareaListenerScroll: (event: Event) => void;
     private textareaResizeObserver: ResizeObserver;
     private textareaListenerSelectionchange: (event: Event) => void;
-    private textareaContent: ContentState;
     private textareaScrollSize: SizeState;
     private textareaClientSize: SizeState;
     private textareaScrollPosition: ScrollState;
     private textareaSelectionStart: Cursor;
     private textareaSelectionEnd: Cursor;
     // suggestion view
-    private suggestionView: HTMLElement | undefined;
-    private suggestionViewSelect: HTMLSelectElement | undefined;
+    private suggestionView: HTMLElement;
+    private suggestionViewSelect: HTMLSelectElement;
     private suggestionViewListenerKeydown: (event: KeyboardEvent) => void;
     private suggestionViewListenerClick: (event: MouseEvent) => void;
     // worker
@@ -121,41 +115,6 @@ export class Editor extends HTMLElement {
     // constructor
 
     constructor() {
-        super();
-        // initialize container
-        // initialize header view
-        this.headerViewListenerChange = e => this.handleHeaderViewChange(e);
-        this.headerViewState = {content: '', dirty: false};
-        // initialize lineno view
-        this.linenoViewState = {content: '', rows: new Array<RowPosition>, dirty: false};
-        // initialize body container
-        // initialize highlight view
-        this.highlightViewState = {content: '', rows: new Array<string>, dirty: false};
-        // initialize textarea
-        this.textareaListenerKeydown = e => this.handleTextareaKeyDown(e);
-        this.textareaListenerInput = e => this.handleTextareaInput(e);
-        this.textareaListenerScroll = e => this.handleTextareaScroll(e);
-        this.textareaResizeObserver = new ResizeObserver(e => this.handleTextareaReSize(e));
-        this.textareaListenerSelectionchange = e => this.handleTextareaSelectionchange(e);
-        this.textareaContent = {value: '', dirty: false};
-        this.textareaScrollSize = {width: 0, height: 0, dirty: false};
-        this.textareaClientSize = {width: 0, height: 0, dirty: false};
-        this.textareaScrollPosition = {top: 0, left: 0, dirty_top: false, dirty_left: false};
-        this.textareaSelectionStart = {position: 0, column: 0, row: 0};
-        this.textareaSelectionEnd = {position: 0, column: 0, row: 0};
-        // initialize suggestion view
-        this.suggestionViewListenerKeydown = e => this.handleSuggestionViewKeyDown(e);
-        this.suggestionViewListenerClick = e => this.handleSuggestionViewClick(e);
-        // initialize worker
-        this.worker = new SharedWorker(EditorWorker);
-        this.worker.port.onmessage = e => this.handleWorkerMessage(e);
-        // initialize animation frame
-        this.tickAnimationFrameID = 0;
-    }
-
-    // clasback
-
-    public connectedCallback() {
         // create container
         this.container = el('div', EditorStyles.container, undefined, [
             // create header view
@@ -184,58 +143,53 @@ export class Editor extends HTMLElement {
                 ])),
             ])),
         ]);
+        // initialize container
+        // initialize header view
+        this.headerViewListenerChange = e => this.handleHeaderViewChange(e);
+        this.headerViewState = {content: '', dirty: false};
+        // initialize lineno view
+        this.linenoViewState = {content: '', rows: new Array<RowPosition>, dirty: false};
+        // initialize body container
+        // initialize highlight view
+        this.highlightViewState = {content: '', rows: new Array<string>, dirty: false};
+        // initialize textarea
+        this.textareaListenerKeydown = e => this.handleTextareaKeyDown(e);
+        this.textareaListenerInput = e => this.handleTextareaInput(e);
+        this.textareaListenerScroll = e => this.handleTextareaScroll(e);
+        this.textareaResizeObserver = new ResizeObserver(e => this.handleTextareaReSize(e));
+        this.textareaListenerSelectionchange = e => this.handleTextareaSelectionchange(e);
+        this.textareaScrollSize = {width: 0, height: 0, dirty: false};
+        this.textareaClientSize = {width: 0, height: 0, dirty: false};
+        this.textareaScrollPosition = {top: 0, left: 0, dirty_top: false, dirty_left: false};
+        this.textareaSelectionStart = {position: 0, column: 0, row: 0};
+        this.textareaSelectionEnd = {position: 0, column: 0, row: 0};
+        // initialize suggestion view
+        this.suggestionViewListenerKeydown = e => this.handleSuggestionViewKeyDown(e);
+        this.suggestionViewListenerClick = e => this.handleSuggestionViewClick(e);
+        // initialize worker
+        this.worker = new SharedWorker(EditorWorker);
+        this.worker.port.onmessage = e => this.handleWorkerMessage(e);
+        // initialize animation frame
+        this.tickAnimationFrameID = 0;
         // add event header view
         this.addHeaderViewEvent();
         // add event textarea
         this.addTextareaEvent();
         // add event suggestion view
         this.addSuggestionViewEvent();
-        // mount 
-        this.appendChild(this.container);
-        // reflect to textarea
-        this.reflectContentToTextarea();
-        this.reflectScrollPositionToTextarea();
-    }
-
-    public disconnectedCallback() {
-        // close worker
-        this.worker.port.close();
-        this.worker.port.onmessage = null;
-        // remove event suggestion view
-        this.removeSuggestionViewEvent();
-        // remove event textarea
-        this.removeTextareaEvent();
-        // remove event header view
-        this.removeHeaderViewEvent();
-        // remove suggestion view
-        this.suggestionViewSelect!.parentElement?.removeChild(this.suggestionViewSelect!);
-        this.suggestionView!.parentElement?.removeChild(this.suggestionView!);
-        // remove textarea
-        this.textarea!.parentElement?.removeChild(this.textarea!);
-        // remove highlight view
-        this.highlightViewCode!.parentElement?.removeChild(this.highlightViewCode!);
-        this.highlightViewPre!.parentElement?.removeChild(this.highlightViewPre!);
-        this.highlightView!.parentElement?.removeChild(this.highlightView!);
-        // remove body container
-        this.bodyContainer!.parentElement?.removeChild(this.bodyContainer!);
-        // remove highlight view
-        this.linenoViewCode!.parentElement?.removeChild(this.linenoViewCode!);
-        this.linenoViewPre!.parentElement?.removeChild(this.linenoViewPre!);
-        this.linenoView!.parentElement?.removeChild(this.linenoView!);
-        // umount header view
-        this.headerViewSelect!.parentElement?.removeChild(this.headerViewSelect!);
-        this.headerView!.parentElement?.removeChild(this.headerView!);
-        // umount container
-        this.container!.parentElement?.removeChild(this.container!);
     }
 
     // property
 
+    get element(): HTMLElement {
+        return this.container;
+    }
+
     get state(): string {
         return JSON.stringify({
-            text: (this.textarea) ? this.textarea.value : this.textareaContent.value,
-            selectionStart: (this.textarea) ? this.textarea.selectionStart : this.textareaSelectionStart.position,
-            selectionEnd: (this.textarea) ? this.textarea.selectionEnd : this.textareaSelectionEnd.position,
+            text: this.textarea.value,
+            selectionStart: this.textarea.selectionStart,
+            selectionEnd: this.textarea.selectionEnd,
             scrollTop: this.textareaScrollPosition.top,
             scrollLeft: this.textareaScrollPosition.left,
         });
@@ -254,18 +208,53 @@ export class Editor extends HTMLElement {
                 stateObj = parseObj;
             }
         } catch {}
-        // store
-        this.textareaContent.dirty = this.textareaContent.value !== stateObj.text;
-        this.textareaContent.value = stateObj.text;
-        this.textareaSelectionStart = getCursor(stateObj.text, stateObj.selectionStart);
-        this.textareaSelectionEnd = getCursor(stateObj.text, stateObj.selectionEnd);
-        this.textareaScrollPosition.dirty_top = this.textareaScrollPosition.top !== stateObj.scrollTop;
-        this.textareaScrollPosition.dirty_left = this.textareaScrollPosition.left !== stateObj.scrollLeft;
-        this.textareaScrollPosition.top = stateObj.scrollTop;
-        this.textareaScrollPosition.left = stateObj.scrollLeft;
-        // reflect
-        this.reflectContentToTextarea();
-        this.reflectScrollPositionToTextarea();
+        const change_text = (this.textarea.value !== stateObj.text);
+        this.textarea.value = stateObj.text;
+        this.textarea.selectionStart = stateObj.selectionStart;
+        this.textarea.selectionEnd = stateObj.selectionEnd;
+        if (this.textareaScrollPosition.top !== stateObj.scrollTop || this.textareaScrollPosition.left !== stateObj.scrollLeft) {
+            window.requestAnimationFrame(() => {
+                this.textarea.scrollTop = stateObj.scrollTop;
+                this.textarea.scrollLeft = stateObj.scrollLeft;
+            });
+        }
+        if (change_text) {
+            this.postWorkerUpdate();
+        }
+    }
+
+    //  remove
+
+    public remove() {
+        // close worker
+        this.worker.port.close();
+        this.worker.port.onmessage = null;
+        // remove event suggestion view
+        this.removeSuggestionViewEvent();
+        // remove event textarea
+        this.removeTextareaEvent();
+        // remove event header view
+        this.removeHeaderViewEvent();
+        // remove suggestion view
+        this.suggestionViewSelect.parentElement?.removeChild(this.suggestionViewSelect);
+        this.suggestionView.parentElement?.removeChild(this.suggestionView);
+        // remove textarea
+        this.textarea.parentElement?.removeChild(this.textarea);
+        // remove highlight view
+        this.highlightViewCode.parentElement?.removeChild(this.highlightViewCode);
+        this.highlightViewPre.parentElement?.removeChild(this.highlightViewPre);
+        this.highlightView.parentElement?.removeChild(this.highlightView);
+        // remove body container
+        this.bodyContainer.parentElement?.removeChild(this.bodyContainer);
+        // remove highlight view
+        this.linenoViewCode.parentElement?.removeChild(this.linenoViewCode);
+        this.linenoViewPre.parentElement?.removeChild(this.linenoViewPre);
+        this.linenoView.parentElement?.removeChild(this.linenoView);
+        // umount header view
+        this.headerViewSelect.parentElement?.removeChild(this.headerViewSelect);
+        this.headerView.parentElement?.removeChild(this.headerView);
+        // umount container
+        this.container.parentElement?.removeChild(this.container);
     }
 
     // animation frame
@@ -303,11 +292,11 @@ export class Editor extends HTMLElement {
     // header view
 
     private addHeaderViewEvent() {
-        this.headerViewSelect!.addEventListener('change', this.headerViewListenerChange);
+        this.headerViewSelect.addEventListener('change', this.headerViewListenerChange);
     }
 
     private removeHeaderViewEvent() {
-        this.headerViewSelect!.removeEventListener('change', this.headerViewListenerChange);
+        this.headerViewSelect.removeEventListener('change', this.headerViewListenerChange);
     }
 
     private handleHeaderViewChange(event: Event): void {
@@ -315,16 +304,16 @@ export class Editor extends HTMLElement {
         if (0 <= row && row < this.linenoViewState.rows.length) {
             const top = this.linenoViewState.rows[row].top;
             window.requestAnimationFrame(() => {
-                this.textarea!.scrollTop = top;
+                this.textarea.scrollTop = top;
             });
         }
     }
 
     private reflectTextContentToHeaderView() {
         if (this.headerViewState.dirty) {
-            const selected = this.headerViewSelect!.selectedIndex;
-            this.headerViewSelect!.innerHTML = this.headerViewState.content;
-            this.headerViewSelect!.selectedIndex = selected;
+            const selected = this.headerViewSelect.selectedIndex;
+            this.headerViewSelect.innerHTML = this.headerViewState.content;
+            this.headerViewSelect.selectedIndex = selected;
             this.headerViewState.dirty = false;
         }
     }
@@ -332,25 +321,25 @@ export class Editor extends HTMLElement {
     // lineno view
 
     private reflectScrollSizeToLinenoView() {
-        if (this.textareaScrollSize.dirty && this.linenoViewPre) {
+        if (this.textareaScrollSize.dirty) {
             this.linenoViewPre.style.height = this.textareaScrollSize.height + 'px';
         }
     }
 
     private reflectClientSizeToLinenoView() {
-        if (this.textareaClientSize.dirty && this.linenoView) {
+        if (this.textareaClientSize.dirty) {
             this.linenoView.style.height = this.textareaClientSize.height + 'px';
         }
     }
 
     private reflectScrollPositionToLinenoView() {
-        if (this.textareaScrollPosition.dirty_top && this.linenoView) {
+        if (this.textareaScrollPosition.dirty_top) {
             this.linenoView.scrollTop = this.textareaScrollPosition.top;
         }
     }
 
     private reflectTextContentToLinenoView() {
-        if (this.linenoViewState.dirty && this.linenoViewCode) {
+        if (this.linenoViewState.dirty) {
             this.linenoViewCode.innerHTML = this.linenoViewState.content;
             const spans = this.linenoViewCode.querySelectorAll('span');
             const spansLen = spans.length;
@@ -368,20 +357,20 @@ export class Editor extends HTMLElement {
 
     private reflectScrollSizeToHighlightView() {
         if (this.textareaScrollSize.dirty) {
-            this.highlightViewPre!.style.width = this.textareaScrollSize.width + 'px';
+            this.highlightViewPre.style.width = this.textareaScrollSize.width + 'px';
         }
     }
 
     private reflectClientSizeToHighlightView() {
         if (this.textareaClientSize.dirty) {
-            this.highlightView!.style.width = this.textareaClientSize.width + 'px';
-            this.highlightView!.style.height = this.textareaClientSize.height + 'px';
+            this.highlightView.style.width = this.textareaClientSize.width + 'px';
+            this.highlightView.style.height = this.textareaClientSize.height + 'px';
         }
     }
 
     private reflectScrollPositionToHighlightView() {
         if (this.textareaScrollPosition.dirty_left) {
-            this.highlightView!.scrollLeft = this.textareaScrollPosition.left;
+            this.highlightView.scrollLeft = this.textareaScrollPosition.left;
         }
     }
 
@@ -391,8 +380,8 @@ export class Editor extends HTMLElement {
             const vireportBottom = viewportTop + this.textareaClientSize.height;
             const row_begin = Math.max(0, this.linenoViewState.rows.findIndex(v => viewportTop < v.bottom));
             const row_end = Math.max(0, this.linenoViewState.rows.findLastIndex(v => v.top < vireportBottom));
-            this.highlightViewCode!.innerHTML = this.highlightViewState.rows.filter((_,i) => row_begin <= i && i <= row_end).join('\n');
-            this.highlightView!.scrollTop = (this.linenoViewState.rows.length === 0) ? 0 : viewportTop - this.linenoViewState.rows[row_begin].top;
+            this.highlightViewCode.innerHTML = this.highlightViewState.rows.filter((_,i) => row_begin <= i && i <= row_end).join('\n');
+            this.highlightView.scrollTop = (this.linenoViewState.rows.length === 0) ? 0 : viewportTop - this.linenoViewState.rows[row_begin].top;
             this.highlightViewState.dirty = false;
         }
     }
@@ -400,20 +389,20 @@ export class Editor extends HTMLElement {
     // textarea
 
     private addTextareaEvent() {
-        this.textarea!.addEventListener('keydown', this.textareaListenerKeydown);
-        this.textarea!.addEventListener('input', this.textareaListenerInput);
-        this.textarea!.addEventListener('scroll', this.textareaListenerScroll);
-        this.textareaResizeObserver.observe(this.textarea!);
-        this.textarea!.addEventListener('selectionchange', this.textareaListenerSelectionchange);
+        this.textarea.addEventListener('keydown', this.textareaListenerKeydown);
+        this.textarea.addEventListener('input', this.textareaListenerInput);
+        this.textarea.addEventListener('scroll', this.textareaListenerScroll);
+        this.textareaResizeObserver.observe(this.textarea);
+        this.textarea.addEventListener('selectionchange', this.textareaListenerSelectionchange);
     }
 
     private removeTextareaEvent() {
-        this.textarea!.removeEventListener('keydown', this.textareaListenerKeydown);
-        this.textarea!.removeEventListener('input', this.textareaListenerInput);
-        this.textarea!.removeEventListener('scroll', this.textareaListenerScroll);
-        this.textareaResizeObserver.unobserve(this.textarea!);
+        this.textarea.removeEventListener('keydown', this.textareaListenerKeydown);
+        this.textarea.removeEventListener('input', this.textareaListenerInput);
+        this.textarea.removeEventListener('scroll', this.textareaListenerScroll);
+        this.textareaResizeObserver.unobserve(this.textarea);
         this.textareaResizeObserver.disconnect();
-        this.textarea!.removeEventListener('selectionchange', this.textareaListenerSelectionchange);
+        this.textarea.removeEventListener('selectionchange', this.textareaListenerSelectionchange);
     }
 
     private handleTextareaKeyDown(event: KeyboardEvent): void {
@@ -438,7 +427,7 @@ export class Editor extends HTMLElement {
                 const word = this.getSelectSuggestionWord(0);
                 if (word) {
                     this.hiddenSuggestionView();
-                    this.textarea!.focus();
+                    this.textarea.focus();
                     this.applySuggestionWordToTextarea(word);
                     event.preventDefault();
                 }
@@ -465,9 +454,9 @@ export class Editor extends HTMLElement {
     }
 
     private handleTextareaSelectionchange(_event: Event): void {
-        const start = this.textarea!.selectionStart;
-        const end = this.textarea!.selectionEnd;
-        const text = this.textarea!.value;
+        const start = this.textarea.selectionStart;
+        const end = this.textarea.selectionEnd;
+        const text = this.textarea.value;
         const cursor_start = getCursor(text, start);
         const cursor_end = getCursor(text, end);
         const new_row_start = cursor_start.row;
@@ -475,28 +464,16 @@ export class Editor extends HTMLElement {
         const old_row_start = this.textareaSelectionStart.row;
         const old_row_end = (this.textareaSelectionStart.row < this.textareaSelectionEnd.row && this.textareaSelectionEnd.column === 0) ? this.textareaSelectionEnd.row - 1 : this.textareaSelectionEnd.row;
         if (new_row_start !== old_row_start || new_row_end !== old_row_end) {
-            this.linenoViewCode!.querySelectorAll('span:nth-of-type(n+'+(old_row_start+1)+'):nth-of-type(-n+'+(old_row_end+1)+')').forEach(e => e.classList.toggle(EditorStyles.selected, false));
-            this.linenoViewCode!.querySelectorAll('span:nth-of-type(n+'+(new_row_start+1)+'):nth-of-type(-n+'+(new_row_end+1)+')').forEach(e => e.classList.toggle(EditorStyles.selected, true));
+            this.linenoViewCode.querySelectorAll('span:nth-of-type(n+'+(old_row_start+1)+'):nth-of-type(-n+'+(old_row_end+1)+')').forEach(e => e.classList.toggle(EditorStyles.selected, false));
+            this.linenoViewCode.querySelectorAll('span:nth-of-type(n+'+(new_row_start+1)+'):nth-of-type(-n+'+(new_row_end+1)+')').forEach(e => e.classList.toggle(EditorStyles.selected, true));
             this.textareaSelectionStart = cursor_start;
             this.textareaSelectionEnd = cursor_end;
         }
     }
 
-    private reflectContentToTextarea() {
-        if (this.textareaContent.dirty) {
-            if (this.textarea) {
-                this.textarea.value = this.textareaContent.value;
-                this.textarea.selectionStart = this.textareaSelectionStart.position;
-                this.textarea.selectionEnd = this.textareaSelectionEnd.position;
-                this.textareaContent.dirty = true;
-                this.postWorkerUpdate();
-            }
-        }
-    }
-
     private storeScrollSize() {
-        const width = this.textarea!.scrollWidth;
-        const height = this.textarea!.scrollHeight;
+        const width = this.textarea.scrollWidth;
+        const height = this.textarea.scrollHeight;
         if (this.textareaScrollSize.width !== width || this.textareaScrollSize.height !== height) {
             this.textareaScrollSize.width = width;
             this.textareaScrollSize.height = height;
@@ -509,8 +486,8 @@ export class Editor extends HTMLElement {
     }
 
     private storeClientSize() {
-        const width = this.textarea!.clientWidth;
-        const height = this.textarea!.clientHeight;
+        const width = this.textarea.clientWidth;
+        const height = this.textarea.clientHeight;
         if (this.textareaClientSize.width !== width || this.textareaClientSize.height !== height) {
             this.textareaClientSize.width = width;
             this.textareaClientSize.height = height;
@@ -523,8 +500,8 @@ export class Editor extends HTMLElement {
     }
 
     private storeScrollPosition() {
-        const top = this.textarea!.scrollTop;
-        const left = this.textarea!.scrollLeft;
+        const top = this.textarea.scrollTop;
+        const left = this.textarea.scrollLeft;
         if (this.textareaScrollPosition.top !== top) {
             this.textareaScrollPosition.top = top;
             this.textareaScrollPosition.dirty_top = true;
@@ -535,26 +512,15 @@ export class Editor extends HTMLElement {
         }
     }
 
-    private reflectScrollPositionToTextarea() {
-        if (this.textareaScrollPosition.dirty_top || this.textareaScrollPosition.dirty_left) {
-            window.requestAnimationFrame(() => {
-                if (this.textarea) {
-                    this.textarea.scrollTop = this.textareaScrollPosition.top;
-                    this.textarea.scrollLeft = this.textareaScrollPosition.left;
-                }
-            });
-        }
-    }
-
     private reflectedScrollPosition() {
         this.textareaScrollPosition.dirty_top = false;
         this.textareaScrollPosition.dirty_left = false;
     }
 
     private toggleComment() {
-        const selection_start = this.textarea!.selectionStart;
-        const selection_end = this.textarea!.selectionEnd;
-        const text = this.textarea!.value;
+        const selection_start = this.textarea.selectionStart;
+        const selection_end = this.textarea.selectionEnd;
+        const text = this.textarea.value;
         const toggle_start = [text.substring(0, selection_start).lastIndexOf('\n')].reduce((a,v) => (v !== -1) ? v + 1 : a, 0);
         const toggle_end = [text.substring(0, selection_end).lastIndexOf('\n'), text.indexOf('\n', selection_end)].reduce((a,v) => (v !== -1 && toggle_start < v && (selection_end - 1) <= v && v < a) ? v : a, text.length);
         const toggle_text = text.substring(toggle_start, toggle_end);
@@ -590,27 +556,27 @@ export class Editor extends HTMLElement {
                 position += line.length + 1;
             }
         }
-        this.textarea!.value = text.substring(0, toggle_start) + toggle_lines.join('\n') + text.substring(toggle_end);
-        this.textarea!.selectionStart = new_selection_start;
-        this.textarea!.selectionEnd = new_selection_end;
+        this.textarea.value = text.substring(0, toggle_start) + toggle_lines.join('\n') + text.substring(toggle_end);
+        this.textarea.selectionStart = new_selection_start;
+        this.textarea.selectionEnd = new_selection_end;
         this.requestTickAnimationFrame();
         this.postWorkerUpdate();
     }
 
     private insertValue(value: string, start?: number, end?: number) {
-        start ??= this.textarea!.selectionStart;
-        end ??= this.textarea!.selectionEnd;
-        const text = this.textarea!.value;
-        this.textarea!.value = text.substring(0, start) + value + text.substring(end);
-        this.textarea!.selectionStart = this.textarea!.selectionEnd = start + value.length;
+        start ??= this.textarea.selectionStart;
+        end ??= this.textarea.selectionEnd;
+        const text = this.textarea.value;
+        this.textarea.value = text.substring(0, start) + value + text.substring(end);
+        this.textarea.selectionStart = this.textarea.selectionEnd = start + value.length;
         this.requestTickAnimationFrame();
         this.postWorkerUpdate();
     }
 
     private applySuggestionWordToTextarea(word: string) {
-        const text = this.textarea!.value;
-        let start = this.textarea!.selectionStart;
-        let end = this.textarea!.selectionEnd;
+        const text = this.textarea.value;
+        let start = this.textarea.selectionStart;
+        let end = this.textarea.selectionEnd;
         for (let i = start - 1;0 <= i && !isDelimiter(text.charAt(i)); start = i--);
         for (;end < text.length && !isDelimiter(text.charAt(end)); end++);
         const insert_word = word + ((text.charAt(end) !== ',') ? ',' : '');
@@ -620,12 +586,12 @@ export class Editor extends HTMLElement {
     // suggestion
 
     private addSuggestionViewEvent() {
-        this.suggestionViewSelect!.addEventListener('keydown', this.suggestionViewListenerKeydown);
+        this.suggestionViewSelect.addEventListener('keydown', this.suggestionViewListenerKeydown);
         document.addEventListener('click', this.suggestionViewListenerClick);
     }
 
     private removeSuggestionViewEvent() {
-        this.suggestionViewSelect!.removeEventListener('keydown', this.suggestionViewListenerKeydown);
+        this.suggestionViewSelect.removeEventListener('keydown', this.suggestionViewListenerKeydown);
         document.removeEventListener('click', this.suggestionViewListenerClick);
     }
 
@@ -634,18 +600,18 @@ export class Editor extends HTMLElement {
             return;
         } else if (event.key === 'Escape') {
             this.hiddenSuggestionView();
-            this.textarea!.focus();
+            this.textarea.focus();
             event.preventDefault();
         } else if (event.key === 'Backspace') {
             this.hiddenSuggestionView();
-            this.textarea!.focus();
+            this.textarea.focus();
             event.preventDefault();
             event.stopPropagation();
         } else if (event.key === 'Enter') {
             const word = this.getSelectSuggestionWord();
             if (word) {
                 this.hiddenSuggestionView();
-                this.textarea!.focus();
+                this.textarea.focus();
                 this.applySuggestionWordToTextarea(word);
                 event.preventDefault();
             }
@@ -653,50 +619,50 @@ export class Editor extends HTMLElement {
     }
 
     private handleSuggestionViewClick(event: MouseEvent):void {
-        if (this.suggestionView!.contains(event.target as Node)) {
+        if (this.suggestionView.contains(event.target as Node)) {
         } else {
             this.hiddenSuggestionView();
         }
     }
 
     private reflectCaretPositionToSuggestionView() {
-        const caret = this.highlightViewCode!.querySelector('span.caret') as HTMLSpanElement;
+        const caret = this.highlightViewCode.querySelector('span.caret') as HTMLSpanElement;
         if (caret) {
-            this.suggestionView!.style.top = (caret.offsetTop + caret.offsetHeight - this.highlightView!.scrollTop) + 'px';
-            this.suggestionView!.style.left = (caret.offsetLeft - this.highlightView!.scrollLeft) + 'px';
+            this.suggestionView.style.top = (caret.offsetTop + caret.offsetHeight - this.highlightView.scrollTop) + 'px';
+            this.suggestionView.style.left = (caret.offsetLeft - this.highlightView.scrollLeft) + 'px';
         }
     }
 
     private isVisibleSuggestionView(): boolean {
-        return this.suggestionView!.style.visibility === 'visible';
+        return this.suggestionView.style.visibility === 'visible';
     }
 
     private visibleSuggestionView() {
-        const caret = this.highlightViewCode!.querySelector('span.caret') as HTMLSpanElement;
+        const caret = this.highlightViewCode.querySelector('span.caret') as HTMLSpanElement;
         if (caret) {
             if (!this.isVisibleSuggestionView()) {
-                this.suggestionView!.style.visibility = 'visible';
+                this.suggestionView.style.visibility = 'visible';
             }
         }
     }
 
     private hiddenSuggestionView() {
         if (this.isVisibleSuggestionView()) {
-            this.suggestionView!.style.visibility = 'hidden';
+            this.suggestionView.style.visibility = 'hidden';
         }
     }
 
     private focusSuggestionView() {
         if (this.isVisibleSuggestionView()) {
-            this.suggestionViewSelect!.selectedIndex = 0;
-            this.suggestionViewSelect!.focus();
+            this.suggestionViewSelect.selectedIndex = 0;
+            this.suggestionViewSelect.focus();
         }
     }
 
     private getSelectSuggestionWord(select?: number): string | null {
-        select ??= this.suggestionViewSelect!.selectedIndex;
-        if (0 <= select && select < this.suggestionViewSelect!.options.length) {
-            return this.suggestionViewSelect!.options[select].value;
+        select ??= this.suggestionViewSelect.selectedIndex;
+        if (0 <= select && select < this.suggestionViewSelect.options.length) {
+            return this.suggestionViewSelect.options[select].value;
         }
         return null;
     }
@@ -725,8 +691,8 @@ export class Editor extends HTMLElement {
         }
         // suggestion view
         if (0 < event.data.suggestionViewHtml.length) {
-            this.suggestionViewSelect!.innerHTML = event.data.suggestionViewHtml;
-            this.suggestionViewSelect!.selectedIndex = -1;
+            this.suggestionViewSelect.innerHTML = event.data.suggestionViewHtml;
+            this.suggestionViewSelect.selectedIndex = -1;
             this.visibleSuggestionView();
             window.requestAnimationFrame(() => {
                 this.reflectCaretPositionToSuggestionView();
@@ -737,9 +703,9 @@ export class Editor extends HTMLElement {
     }
 
     private postWorkerInput() {
-        const start = this.textarea!.selectionStart;
-        const end = this.textarea!.selectionEnd;
-        const text = this.textarea!.value;
+        const start = this.textarea.selectionStart;
+        const end = this.textarea.selectionEnd;
+        const text = this.textarea.value;
         this.worker.port.postMessage({
             suggestion: true,
             selectionStart: start,
@@ -749,16 +715,27 @@ export class Editor extends HTMLElement {
     }
 
     private postWorkerUpdate() {
-        const start = this.textarea!.selectionStart;
-        const end = this.textarea!.selectionEnd;
-        const text = this.textarea!.value;
         this.worker.port.postMessage({
             suggestion: false,
-            selectionStart: start,
-            selectionEnd: end,
-            text: text
+            selectionStart: this.textarea.selectionStart,
+            selectionEnd: this.textarea.selectionEnd,
+            text: this.textarea.value
         });
     }
 }
 
-customElements.define('yossq236-custom-editor-element', Editor);
+// index.ts
+                // const editor = new Editor();
+                // const widget = (node as any).addDOMWidget(inputName, inputData[0], editor.element, {
+                //     getValue: () => {
+                //         return editor.state;
+                //     },
+                //     setValue: (newValue) => {
+                //         editor.state = newValue;
+                //     },
+                // });
+                // const originalOnRemove = widget.onRemove;
+                // widget.onRemove = () => {
+                //     editor.remove();
+                //     originalOnRemove?.call(widget);
+                // };

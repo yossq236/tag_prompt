@@ -1,13 +1,13 @@
 import { app as e } from "/scripts/app.js";
 //#region src/editorWorker.ts?sharedworker&url
 var t = "/extensions/tag_prompt/assets/editorWorker.js", n = {
-	container: "_container_58djt_3",
-	linenoView: "_lineno-view_58djt_63",
-	selected: "_selected_58djt_65",
-	headerView: "_header-view_58djt_79",
-	bodyContainer: "_body-container_58djt_165",
-	highlightView: "_highlight-view_58djt_243",
-	suggestionView: "_suggestion-view_58djt_293"
+	container: "_container_wi31u_13",
+	linenoView: "_lineno-view_wi31u_73",
+	selected: "_selected_wi31u_75",
+	headerView: "_header-view_wi31u_89",
+	bodyContainer: "_body-container_wi31u_175",
+	highlightView: "_highlight-view_wi31u_253",
+	suggestionView: "_suggestion-view_wi31u_303"
 };
 //#endregion
 //#region src/utils.ts
@@ -33,7 +33,7 @@ function o(e, t) {
 		column: t - n.lastIndexOf("\n") - 1
 	};
 }
-var s = class {
+var s = class extends HTMLElement {
 	container;
 	headerView;
 	headerViewSelect;
@@ -54,6 +54,7 @@ var s = class {
 	textareaListenerScroll;
 	textareaResizeObserver;
 	textareaListenerSelectionchange;
+	textareaContent;
 	textareaScrollSize;
 	textareaClientSize;
 	textareaScrollPosition;
@@ -66,15 +67,7 @@ var s = class {
 	worker;
 	tickAnimationFrameID;
 	constructor() {
-		this.container = i("div", n.container, void 0, [
-			this.headerView = i("div", n.headerView, void 0, [this.headerViewSelect = i("select")]),
-			this.linenoView = i("div", n.linenoView, void 0, [this.linenoViewPre = i("pre", void 0, void 0, [this.linenoViewCode = i("code")])]),
-			this.bodyContainer = i("div", n.bodyContainer, void 0, [
-				this.highlightView = i("div", n.highlightView, void 0, [this.highlightViewPre = i("pre", void 0, void 0, [this.highlightViewCode = i("code")])]),
-				this.textarea = i("textarea", "comfy-multiline-input", { "data-capture-wheel": "true" }),
-				this.suggestionView = i("div", n.suggestionView, void 0, [this.suggestionViewSelect = i("select", void 0, { size: "10" })])
-			])
-		]), this.headerViewListenerChange = (e) => this.handleHeaderViewChange(e), this.headerViewState = {
+		super(), this.headerViewListenerChange = (e) => this.handleHeaderViewChange(e), this.headerViewState = {
 			content: "",
 			dirty: !1
 		}, this.linenoViewState = {
@@ -85,7 +78,10 @@ var s = class {
 			content: "",
 			rows: [],
 			dirty: !1
-		}, this.textareaListenerKeydown = (e) => this.handleTextareaKeyDown(e), this.textareaListenerInput = (e) => this.handleTextareaInput(e), this.textareaListenerScroll = (e) => this.handleTextareaScroll(e), this.textareaResizeObserver = new ResizeObserver((e) => this.handleTextareaReSize(e)), this.textareaListenerSelectionchange = (e) => this.handleTextareaSelectionchange(e), this.textareaScrollSize = {
+		}, this.textareaListenerKeydown = (e) => this.handleTextareaKeyDown(e), this.textareaListenerInput = (e) => this.handleTextareaInput(e), this.textareaListenerScroll = (e) => this.handleTextareaScroll(e), this.textareaResizeObserver = new ResizeObserver((e) => this.handleTextareaReSize(e)), this.textareaListenerSelectionchange = (e) => this.handleTextareaSelectionchange(e), this.textareaContent = {
+			value: "",
+			dirty: !1
+		}, this.textareaScrollSize = {
 			width: 0,
 			height: 0,
 			dirty: !1
@@ -106,16 +102,27 @@ var s = class {
 			position: 0,
 			column: 0,
 			row: 0
-		}, this.suggestionViewListenerKeydown = (e) => this.handleSuggestionViewKeyDown(e), this.suggestionViewListenerClick = (e) => this.handleSuggestionViewClick(e), this.worker = new SharedWorker(t), this.worker.port.onmessage = (e) => this.handleWorkerMessage(e), this.tickAnimationFrameID = 0, this.addHeaderViewEvent(), this.addTextareaEvent(), this.addSuggestionViewEvent();
+		}, this.suggestionViewListenerKeydown = (e) => this.handleSuggestionViewKeyDown(e), this.suggestionViewListenerClick = (e) => this.handleSuggestionViewClick(e), this.worker = new SharedWorker(t), this.worker.port.onmessage = (e) => this.handleWorkerMessage(e), this.tickAnimationFrameID = 0;
 	}
-	get element() {
-		return this.container;
+	connectedCallback() {
+		this.container = i("div", n.container, void 0, [
+			this.headerView = i("div", n.headerView, void 0, [this.headerViewSelect = i("select")]),
+			this.linenoView = i("div", n.linenoView, void 0, [this.linenoViewPre = i("pre", void 0, void 0, [this.linenoViewCode = i("code")])]),
+			this.bodyContainer = i("div", n.bodyContainer, void 0, [
+				this.highlightView = i("div", n.highlightView, void 0, [this.highlightViewPre = i("pre", void 0, void 0, [this.highlightViewCode = i("code")])]),
+				this.textarea = i("textarea", "comfy-multiline-input", { "data-capture-wheel": "true" }),
+				this.suggestionView = i("div", n.suggestionView, void 0, [this.suggestionViewSelect = i("select", void 0, { size: "10" })])
+			])
+		]), this.addHeaderViewEvent(), this.addTextareaEvent(), this.addSuggestionViewEvent(), this.appendChild(this.container), this.reflectContentToTextarea(), this.reflectScrollPositionToTextarea();
+	}
+	disconnectedCallback() {
+		this.worker.port.close(), this.worker.port.onmessage = null, this.removeSuggestionViewEvent(), this.removeTextareaEvent(), this.removeHeaderViewEvent(), this.suggestionViewSelect.parentElement?.removeChild(this.suggestionViewSelect), this.suggestionView.parentElement?.removeChild(this.suggestionView), this.textarea.parentElement?.removeChild(this.textarea), this.highlightViewCode.parentElement?.removeChild(this.highlightViewCode), this.highlightViewPre.parentElement?.removeChild(this.highlightViewPre), this.highlightView.parentElement?.removeChild(this.highlightView), this.bodyContainer.parentElement?.removeChild(this.bodyContainer), this.linenoViewCode.parentElement?.removeChild(this.linenoViewCode), this.linenoViewPre.parentElement?.removeChild(this.linenoViewPre), this.linenoView.parentElement?.removeChild(this.linenoView), this.headerViewSelect.parentElement?.removeChild(this.headerViewSelect), this.headerView.parentElement?.removeChild(this.headerView), this.container.parentElement?.removeChild(this.container);
 	}
 	get state() {
 		return JSON.stringify({
-			text: this.textarea.value,
-			selectionStart: this.textarea.selectionStart,
-			selectionEnd: this.textarea.selectionEnd,
+			text: this.textarea ? this.textarea.value : this.textareaContent.value,
+			selectionStart: this.textarea ? this.textarea.selectionStart : this.textareaSelectionStart.position,
+			selectionEnd: this.textarea ? this.textarea.selectionEnd : this.textareaSelectionEnd.position,
 			scrollTop: this.textareaScrollPosition.top,
 			scrollLeft: this.textareaScrollPosition.left
 		});
@@ -132,13 +139,7 @@ var s = class {
 			let n = JSON.parse(e);
 			a(n) && (t = n);
 		} catch {}
-		let n = this.textarea.value !== t.text;
-		this.textarea.value = t.text, this.textarea.selectionStart = t.selectionStart, this.textarea.selectionEnd = t.selectionEnd, (this.textareaScrollPosition.top !== t.scrollTop || this.textareaScrollPosition.left !== t.scrollLeft) && window.requestAnimationFrame(() => {
-			this.textarea.scrollTop = t.scrollTop, this.textarea.scrollLeft = t.scrollLeft;
-		}), n && this.postWorkerUpdate();
-	}
-	remove() {
-		this.worker.port.close(), this.worker.port.onmessage = null, this.removeSuggestionViewEvent(), this.removeTextareaEvent(), this.removeHeaderViewEvent(), this.suggestionViewSelect.parentElement?.removeChild(this.suggestionViewSelect), this.suggestionView.parentElement?.removeChild(this.suggestionView), this.textarea.parentElement?.removeChild(this.textarea), this.highlightViewCode.parentElement?.removeChild(this.highlightViewCode), this.highlightViewPre.parentElement?.removeChild(this.highlightViewPre), this.highlightView.parentElement?.removeChild(this.highlightView), this.bodyContainer.parentElement?.removeChild(this.bodyContainer), this.linenoViewCode.parentElement?.removeChild(this.linenoViewCode), this.linenoViewPre.parentElement?.removeChild(this.linenoViewPre), this.linenoView.parentElement?.removeChild(this.linenoView), this.headerViewSelect.parentElement?.removeChild(this.headerViewSelect), this.headerView.parentElement?.removeChild(this.headerView), this.container.parentElement?.removeChild(this.container);
+		this.textareaContent.dirty = this.textareaContent.value !== t.text, this.textareaContent.value = t.text, this.textareaSelectionStart = o(t.text, t.selectionStart), this.textareaSelectionEnd = o(t.text, t.selectionEnd), this.textareaScrollPosition.dirty_top = this.textareaScrollPosition.top !== t.scrollTop, this.textareaScrollPosition.dirty_left = this.textareaScrollPosition.left !== t.scrollLeft, this.textareaScrollPosition.top = t.scrollTop, this.textareaScrollPosition.left = t.scrollLeft, this.reflectContentToTextarea(), this.reflectScrollPositionToTextarea();
 	}
 	requestTickAnimationFrame() {
 		this.tickAnimationFrameID === 0 && (this.tickAnimationFrameID = window.requestAnimationFrame((e) => this.handleTickAnimationFrame(e)));
@@ -168,16 +169,16 @@ var s = class {
 		}
 	}
 	reflectScrollSizeToLinenoView() {
-		this.textareaScrollSize.dirty && (this.linenoViewPre.style.height = this.textareaScrollSize.height + "px");
+		this.textareaScrollSize.dirty && this.linenoViewPre && (this.linenoViewPre.style.height = this.textareaScrollSize.height + "px");
 	}
 	reflectClientSizeToLinenoView() {
-		this.textareaClientSize.dirty && (this.linenoView.style.height = this.textareaClientSize.height + "px");
+		this.textareaClientSize.dirty && this.linenoView && (this.linenoView.style.height = this.textareaClientSize.height + "px");
 	}
 	reflectScrollPositionToLinenoView() {
-		this.textareaScrollPosition.dirty_top && (this.linenoView.scrollTop = this.textareaScrollPosition.top);
+		this.textareaScrollPosition.dirty_top && this.linenoView && (this.linenoView.scrollTop = this.textareaScrollPosition.top);
 	}
 	reflectTextContentToLinenoView() {
-		if (this.linenoViewState.dirty) {
+		if (this.linenoViewState.dirty && this.linenoViewCode) {
 			this.linenoViewCode.innerHTML = this.linenoViewState.content;
 			let e = this.linenoViewCode.querySelectorAll("span"), t = e.length, n = [];
 			for (let r = 0; r < t; r++) {
@@ -236,6 +237,9 @@ var s = class {
 		let t = this.textarea.selectionStart, r = this.textarea.selectionEnd, i = this.textarea.value, a = o(i, t), s = o(i, r), c = a.row, l = a.row < s.row && s.column === 0 ? s.row - 1 : s.row, u = this.textareaSelectionStart.row, d = this.textareaSelectionStart.row < this.textareaSelectionEnd.row && this.textareaSelectionEnd.column === 0 ? this.textareaSelectionEnd.row - 1 : this.textareaSelectionEnd.row;
 		(c !== u || l !== d) && (this.linenoViewCode.querySelectorAll("span:nth-of-type(n+" + (u + 1) + "):nth-of-type(-n+" + (d + 1) + ")").forEach((e) => e.classList.toggle(n.selected, !1)), this.linenoViewCode.querySelectorAll("span:nth-of-type(n+" + (c + 1) + "):nth-of-type(-n+" + (l + 1) + ")").forEach((e) => e.classList.toggle(n.selected, !0)), this.textareaSelectionStart = a, this.textareaSelectionEnd = s);
 	}
+	reflectContentToTextarea() {
+		this.textareaContent.dirty && this.textarea && (this.textarea.value = this.textareaContent.value, this.textarea.selectionStart = this.textareaSelectionStart.position, this.textarea.selectionEnd = this.textareaSelectionEnd.position, this.textareaContent.dirty = !0, this.postWorkerUpdate());
+	}
 	storeScrollSize() {
 		let e = this.textarea.scrollWidth, t = this.textarea.scrollHeight;
 		(this.textareaScrollSize.width !== e || this.textareaScrollSize.height !== t) && (this.textareaScrollSize.width = e, this.textareaScrollSize.height = t, this.textareaScrollSize.dirty = !0);
@@ -253,6 +257,11 @@ var s = class {
 	storeScrollPosition() {
 		let e = this.textarea.scrollTop, t = this.textarea.scrollLeft;
 		this.textareaScrollPosition.top !== e && (this.textareaScrollPosition.top = e, this.textareaScrollPosition.dirty_top = !0), this.textareaScrollPosition.left !== t && (this.textareaScrollPosition.left = t, this.textareaScrollPosition.dirty_left = !0);
+	}
+	reflectScrollPositionToTextarea() {
+		(this.textareaScrollPosition.dirty_top || this.textareaScrollPosition.dirty_left) && window.requestAnimationFrame(() => {
+			this.textarea && (this.textarea.scrollTop = this.textareaScrollPosition.top, this.textarea.scrollLeft = this.textareaScrollPosition.left);
+		});
 	}
 	reflectedScrollPosition() {
 		this.textareaScrollPosition.dirty_top = !1, this.textareaScrollPosition.dirty_left = !1;
@@ -334,33 +343,32 @@ var s = class {
 		});
 	}
 	postWorkerUpdate() {
+		let e = this.textarea.selectionStart, t = this.textarea.selectionEnd, n = this.textarea.value;
 		this.worker.port.postMessage({
 			suggestion: !1,
-			selectionStart: this.textarea.selectionStart,
-			selectionEnd: this.textarea.selectionEnd,
-			text: this.textarea.value
+			selectionStart: e,
+			selectionEnd: t,
+			text: n
 		});
 	}
 };
 //#endregion
 //#region src/index.ts
-e.registerExtension({
+customElements.define("yossq236-custom-editor-element", s), e.registerExtension({
 	name: "yossq236.TagPromptNode",
 	setup: async (e) => {
 		let t = document.createElement("link");
 		t.rel = "stylesheet", t.type = "text/css", t.href = "/extensions/tag_prompt/assets/index.css", document.head.appendChild(t);
 	},
 	getCustomWidgets: async (e) => ({ MY_STRING: (e, t, n, r, i) => {
-		let a = new s(), o = e.addDOMWidget(t, n[0], a.element, {
-			getValue: () => a.state,
-			setValue: (e) => {
-				a.state = e;
-			}
-		}), c = o.onRemove;
-		return o.onRemove = () => {
-			a.remove(), c?.call(o);
-		}, {
-			widget: o,
+		let a = document.createElement("yossq236-custom-editor-element");
+		return {
+			widget: e.addDOMWidget(t, n[0], a, {
+				getValue: () => a.state,
+				setValue: (e) => {
+					a.state = e;
+				}
+			}),
 			minWidth: 400,
 			minHeight: 300
 		};
