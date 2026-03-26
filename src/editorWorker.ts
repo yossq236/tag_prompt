@@ -1,7 +1,7 @@
-import { getHeaderViewHtml } from './header.ts';
-import { getLinenoViewHtml } from './lineno.ts';
-import { getHighlightViewHtml } from './highlight.ts';
-import { getSuggestionViewHtml } from './suggestion.ts';
+import { getHeaderViewHtml } from './header';
+import { getLinenoViewHtml } from './lineno';
+import { getHighlightViewHtml } from './highlight';
+import { getSuggestionViewHtml } from './suggestion';
 
 const workerContext = self as unknown as SharedWorkerGlobalScope;
 

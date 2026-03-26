@@ -1,6 +1,7 @@
-import EditorWorker from './editorWorker.ts?sharedworker&url';
-import EditorStyle from './assets/editor.module.css';
-import { isDelimiter, el } from './utils.ts';
+import EditorWorker from './editorWorker?sharedworker&url';
+import EditorStyles from './assets/editor.module.css';
+import { isDelimiter, el } from './utils';
+import { MAX_SUGGESTION_VIEW_ROW } from './constants';
 
 interface EditorState {
     text: string;
@@ -115,21 +116,21 @@ export class Editor {
 
     constructor() {
         // create container
-        this.container = el('div', EditorStyle.container, undefined, [
+        this.container = el('div', EditorStyles.container, undefined, [
             // create header view
-            (this.headerView = el('div', EditorStyle.headerView, undefined, [
+            (this.headerView = el('div', EditorStyles.headerView, undefined, [
                 (this.headerViewSelect = el('select')),
             ])),
             // create lineno view
-            (this.linenoView = el('div', EditorStyle.linenoView, undefined, [
+            (this.linenoView = el('div', EditorStyles.linenoView, undefined, [
                 (this.linenoViewPre = el('pre', undefined, undefined, [
                     (this.linenoViewCode = el('code')),
                 ])),
             ])),
             // create body container
-            (this.bodyContainer = el('div', EditorStyle.bodyContainer, undefined, [
+            (this.bodyContainer = el('div', EditorStyles.bodyContainer, undefined, [
                 // create highlight view
-                (this.highlightView = el('div', EditorStyle.highlightView, undefined, [
+                (this.highlightView = el('div', EditorStyles.highlightView, undefined, [
                     (this.highlightViewPre = el('pre', undefined, undefined, [
                         (this.highlightViewCode = el('code')),
                     ])),
@@ -137,8 +138,8 @@ export class Editor {
                 // create textarea
                 (this.textarea = el('textarea', 'comfy-multiline-input', {"data-capture-wheel": "true"})), // It seems data-capture-wheel="true" is required to capture wheel events in Node 2.0.
                 // create suggestion view
-                (this.suggestionView = el('div', EditorStyle.suggestionView, undefined, [
-                    (this.suggestionViewSelect = el('select', undefined, {'size': '10'})),
+                (this.suggestionView = el('div', EditorStyles.suggestionView, undefined, [
+                    (this.suggestionViewSelect = el('select', undefined, {'size': MAX_SUGGESTION_VIEW_ROW.toString()})),
                 ])),
             ])),
         ]);
@@ -463,8 +464,8 @@ export class Editor {
         const old_row_start = this.textareaSelectionStart.row;
         const old_row_end = (this.textareaSelectionStart.row < this.textareaSelectionEnd.row && this.textareaSelectionEnd.column === 0) ? this.textareaSelectionEnd.row - 1 : this.textareaSelectionEnd.row;
         if (new_row_start !== old_row_start || new_row_end !== old_row_end) {
-            this.linenoViewCode.querySelectorAll('span:nth-of-type(n+'+(old_row_start+1)+'):nth-of-type(-n+'+(old_row_end+1)+')').forEach(e => e.classList.toggle(EditorStyle.selected, false));
-            this.linenoViewCode.querySelectorAll('span:nth-of-type(n+'+(new_row_start+1)+'):nth-of-type(-n+'+(new_row_end+1)+')').forEach(e => e.classList.toggle(EditorStyle.selected, true));
+            this.linenoViewCode.querySelectorAll('span:nth-of-type(n+'+(old_row_start+1)+'):nth-of-type(-n+'+(old_row_end+1)+')').forEach(e => e.classList.toggle(EditorStyles.selected, false));
+            this.linenoViewCode.querySelectorAll('span:nth-of-type(n+'+(new_row_start+1)+'):nth-of-type(-n+'+(new_row_end+1)+')').forEach(e => e.classList.toggle(EditorStyles.selected, true));
             this.textareaSelectionStart = cursor_start;
             this.textareaSelectionEnd = cursor_end;
         }

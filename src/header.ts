@@ -1,6 +1,10 @@
+import { HEADER_TOKENS } from "./constants";
+
+const PATTERN = RegExp(Object.values(HEADER_TOKENS).map(v => (v instanceof RegExp) ? v.source : RegExp.escape(v)).join('|'),'g');
+
 function split(code: string): Array<string> {
     const result = new Array<string>;
-    const matches = code.matchAll(/[#]+|\/\/|\/\*|\*\/|\n/g);
+    const matches = code.matchAll(PATTERN);
     let cursor = 0;
     for (const match of matches) {
         if (cursor < match.index) {

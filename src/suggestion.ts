@@ -1,6 +1,6 @@
-import { TAGS } from './tags.ts';
-import { MAX_SUGGESTION } from './constants.ts';
-import { isDelimiter } from './utils.ts';
+import { TAGS } from './tags';
+import { MAX_SUGGESTION } from './constants';
+import { isDelimiter } from './utils';
 
 interface Suggestion {
   approx: number;

@@ -1,4 +1,4 @@
-import { ASCII_THRESHOLD } from './constants.ts';
+import { ASCII_THRESHOLD } from './constants';
 
 export function isDelimiter(c: string): boolean {
     return (c === ' ') || (c === ',') || (c === '\n') || (ASCII_THRESHOLD <= c.charCodeAt(0));
