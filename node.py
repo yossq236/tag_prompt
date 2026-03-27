@@ -29,7 +29,7 @@ class TagPromptNode(io.ComfyNode):
         parse_text = text
         try:
             obj = json.loads(text)
-            if "text" in obj and "selectionStart" in obj and "selectionEnd" in obj and "scrollTop" in obj and "scrollLeft" in obj:
+            if "text" in obj:
                 parse_text = obj["text"]
         except json.JSONDecodeError as e:
             pass

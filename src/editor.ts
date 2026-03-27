@@ -114,7 +114,7 @@ export class Editor extends HTMLElement {
     private suggestionViewListenerKeydown: (event: KeyboardEvent) => void;
     private suggestionViewListenerClick: (event: MouseEvent) => void;
     // worker
-    private worker: SharedWorker;
+    private worker: SharedWorker | undefined;
     // tick animation frame
     private tickAnimationFrameID: number;
 
@@ -146,14 +146,11 @@ export class Editor extends HTMLElement {
         // initialize suggestion view
         this.suggestionViewListenerKeydown = e => this.handleSuggestionViewKeyDown(e);
         this.suggestionViewListenerClick = e => this.handleSuggestionViewClick(e);
-        // initialize worker
-        this.worker = new SharedWorker(EditorWorker);
-        this.worker.port.onmessage = e => this.handleWorkerMessage(e);
         // initialize animation frame
         this.tickAnimationFrameID = 0;
     }
 
-    // clasback
+    // Web Components - lifecycle callbacks
 
     public connectedCallback() {
         // create container
@@ -184,29 +181,33 @@ export class Editor extends HTMLElement {
                 ])),
             ])),
         ]);
+        // start worker
+        this.worker = new SharedWorker(EditorWorker);
+        this.worker.port.onmessage = e => this.handleWorkerMessage(e);
+        // initialize animation frame
+        this.tickAnimationFrameID = 0;
         // add event header view
-        this.addHeaderViewEvent();
+        this.addHeaderViewEvents();
         // add event textarea
-        this.addTextareaEvent();
+        this.addTextareaEvents();
         // add event suggestion view
-        this.addSuggestionViewEvent();
-        // mount 
+        this.addSuggestionViewEvents();
+        // mount editor element
         this.appendChild(this.container);
-        // reflect to textarea
+        // reflect textarea
         this.reflectContentToTextarea();
         this.reflectScrollPositionToTextarea();
     }
 
     public disconnectedCallback() {
         // close worker
-        this.worker.port.close();
-        this.worker.port.onmessage = null;
+        this.worker?.port.close();
         // remove event suggestion view
-        this.removeSuggestionViewEvent();
+        this.removeSuggestionViewEvents();
         // remove event textarea
-        this.removeTextareaEvent();
+        this.removeTextareaEvents();
         // remove event header view
-        this.removeHeaderViewEvent();
+        this.removeHeaderViewEvents();
         // remove suggestion view
         this.suggestionViewSelect!.parentElement?.removeChild(this.suggestionViewSelect!);
         this.suggestionView!.parentElement?.removeChild(this.suggestionView!);
@@ -222,10 +223,10 @@ export class Editor extends HTMLElement {
         this.linenoViewCode!.parentElement?.removeChild(this.linenoViewCode!);
         this.linenoViewPre!.parentElement?.removeChild(this.linenoViewPre!);
         this.linenoView!.parentElement?.removeChild(this.linenoView!);
-        // umount header view
+        // remove header view
         this.headerViewSelect!.parentElement?.removeChild(this.headerViewSelect!);
         this.headerView!.parentElement?.removeChild(this.headerView!);
-        // umount container
+        // remove container
         this.container!.parentElement?.removeChild(this.container!);
     }
 
@@ -268,45 +269,13 @@ export class Editor extends HTMLElement {
         this.reflectScrollPositionToTextarea();
     }
 
-    // animation frame
-
-    private requestTickAnimationFrame(): void {
-        if (this.tickAnimationFrameID === 0) {
-            this.tickAnimationFrameID = window.requestAnimationFrame((t: DOMHighResTimeStamp) => this.handleTickAnimationFrame(t));
-        }
-    }
-
-    private handleTickAnimationFrame(_time: DOMHighResTimeStamp): void {
-        this.tickAnimationFrameID = 0;
-        // textarea
-        this.storeScrollSize();
-        this.storeClientSize();
-        this.storeScrollPosition();
-        // header view
-        this.reflectTextContentToHeaderView();
-        // lineno view
-        this.reflectScrollSizeToLinenoView();
-        this.reflectClientSizeToLinenoView();
-        this.reflectScrollPositionToLinenoView();
-        this.reflectTextContentToLinenoView();
-        // highlight view
-        this.reflectScrollSizeToHighlightView();
-        this.reflectClientSizeToHighlightView();
-        this.reflectScrollPositionToHighlightView();
-        this.reflectTextContentToHighlightView();
-        // end
-        this.reflectedScrollSize();
-        this.reflectedClientSize();
-        this.reflectedScrollPosition();
-    }
-
     // header view
 
-    private addHeaderViewEvent() {
+    private addHeaderViewEvents() {
         this.headerViewSelect!.addEventListener('change', this.headerViewListenerChange);
     }
 
-    private removeHeaderViewEvent() {
+    private removeHeaderViewEvents() {
         this.headerViewSelect!.removeEventListener('change', this.headerViewListenerChange);
     }
 
@@ -399,7 +368,7 @@ export class Editor extends HTMLElement {
 
     // textarea
 
-    private addTextareaEvent() {
+    private addTextareaEvents() {
         this.textarea!.addEventListener('keydown', this.textareaListenerKeydown);
         this.textarea!.addEventListener('input', this.textareaListenerInput);
         this.textarea!.addEventListener('scroll', this.textareaListenerScroll);
@@ -407,7 +376,7 @@ export class Editor extends HTMLElement {
         this.textarea!.addEventListener('selectionchange', this.textareaListenerSelectionchange);
     }
 
-    private removeTextareaEvent() {
+    private removeTextareaEvents() {
         this.textarea!.removeEventListener('keydown', this.textareaListenerKeydown);
         this.textarea!.removeEventListener('input', this.textareaListenerInput);
         this.textarea!.removeEventListener('scroll', this.textareaListenerScroll);
@@ -617,14 +586,14 @@ export class Editor extends HTMLElement {
         this.insertValue(insert_word, start, end);
     }
 
-    // suggestion
+    // suggestion view
 
-    private addSuggestionViewEvent() {
+    private addSuggestionViewEvents() {
         this.suggestionViewSelect!.addEventListener('keydown', this.suggestionViewListenerKeydown);
         document.addEventListener('click', this.suggestionViewListenerClick);
     }
 
-    private removeSuggestionViewEvent() {
+    private removeSuggestionViewEvents() {
         this.suggestionViewSelect!.removeEventListener('keydown', this.suggestionViewListenerKeydown);
         document.removeEventListener('click', this.suggestionViewListenerClick);
     }
@@ -740,7 +709,7 @@ export class Editor extends HTMLElement {
         const start = this.textarea!.selectionStart;
         const end = this.textarea!.selectionEnd;
         const text = this.textarea!.value;
-        this.worker.port.postMessage({
+        this.worker!.port.postMessage({
             suggestion: true,
             selectionStart: start,
             selectionEnd: end,
@@ -752,12 +721,44 @@ export class Editor extends HTMLElement {
         const start = this.textarea!.selectionStart;
         const end = this.textarea!.selectionEnd;
         const text = this.textarea!.value;
-        this.worker.port.postMessage({
+        this.worker!.port.postMessage({
             suggestion: false,
             selectionStart: start,
             selectionEnd: end,
             text: text
         });
+    }
+
+    // animation frame
+
+    private requestTickAnimationFrame(): void {
+        if (this.tickAnimationFrameID === 0) {
+            this.tickAnimationFrameID = window.requestAnimationFrame((t: DOMHighResTimeStamp) => this.handleTickAnimationFrame(t));
+        }
+    }
+
+    private handleTickAnimationFrame(_time: DOMHighResTimeStamp): void {
+        this.tickAnimationFrameID = 0;
+        // textarea
+        this.storeScrollSize();
+        this.storeClientSize();
+        this.storeScrollPosition();
+        // header view
+        this.reflectTextContentToHeaderView();
+        // lineno view
+        this.reflectScrollSizeToLinenoView();
+        this.reflectClientSizeToLinenoView();
+        this.reflectScrollPositionToLinenoView();
+        this.reflectTextContentToLinenoView();
+        // highlight view
+        this.reflectScrollSizeToHighlightView();
+        this.reflectClientSizeToHighlightView();
+        this.reflectScrollPositionToHighlightView();
+        this.reflectTextContentToHighlightView();
+        // end
+        this.reflectedScrollSize();
+        this.reflectedClientSize();
+        this.reflectedScrollPosition();
     }
 }
 

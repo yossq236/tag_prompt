@@ -102,7 +102,7 @@ var s = class extends HTMLElement {
 			position: 0,
 			column: 0,
 			row: 0
-		}, this.suggestionViewListenerKeydown = (e) => this.handleSuggestionViewKeyDown(e), this.suggestionViewListenerClick = (e) => this.handleSuggestionViewClick(e), this.worker = new SharedWorker(t), this.worker.port.onmessage = (e) => this.handleWorkerMessage(e), this.tickAnimationFrameID = 0;
+		}, this.suggestionViewListenerKeydown = (e) => this.handleSuggestionViewKeyDown(e), this.suggestionViewListenerClick = (e) => this.handleSuggestionViewClick(e), this.tickAnimationFrameID = 0;
 	}
 	connectedCallback() {
 		this.container = i("div", n.container, void 0, [
@@ -113,10 +113,10 @@ var s = class extends HTMLElement {
 				this.textarea = i("textarea", "comfy-multiline-input", { "data-capture-wheel": "true" }),
 				this.suggestionView = i("div", n.suggestionView, void 0, [this.suggestionViewSelect = i("select", void 0, { size: "10" })])
 			])
-		]), this.addHeaderViewEvent(), this.addTextareaEvent(), this.addSuggestionViewEvent(), this.appendChild(this.container), this.reflectContentToTextarea(), this.reflectScrollPositionToTextarea();
+		]), this.worker = new SharedWorker(t), this.worker.port.onmessage = (e) => this.handleWorkerMessage(e), this.tickAnimationFrameID = 0, this.addHeaderViewEvents(), this.addTextareaEvents(), this.addSuggestionViewEvents(), this.appendChild(this.container), this.reflectContentToTextarea(), this.reflectScrollPositionToTextarea();
 	}
 	disconnectedCallback() {
-		this.worker.port.close(), this.worker.port.onmessage = null, this.removeSuggestionViewEvent(), this.removeTextareaEvent(), this.removeHeaderViewEvent(), this.suggestionViewSelect.parentElement?.removeChild(this.suggestionViewSelect), this.suggestionView.parentElement?.removeChild(this.suggestionView), this.textarea.parentElement?.removeChild(this.textarea), this.highlightViewCode.parentElement?.removeChild(this.highlightViewCode), this.highlightViewPre.parentElement?.removeChild(this.highlightViewPre), this.highlightView.parentElement?.removeChild(this.highlightView), this.bodyContainer.parentElement?.removeChild(this.bodyContainer), this.linenoViewCode.parentElement?.removeChild(this.linenoViewCode), this.linenoViewPre.parentElement?.removeChild(this.linenoViewPre), this.linenoView.parentElement?.removeChild(this.linenoView), this.headerViewSelect.parentElement?.removeChild(this.headerViewSelect), this.headerView.parentElement?.removeChild(this.headerView), this.container.parentElement?.removeChild(this.container);
+		this.worker?.port.close(), this.removeSuggestionViewEvents(), this.removeTextareaEvents(), this.removeHeaderViewEvents(), this.suggestionViewSelect.parentElement?.removeChild(this.suggestionViewSelect), this.suggestionView.parentElement?.removeChild(this.suggestionView), this.textarea.parentElement?.removeChild(this.textarea), this.highlightViewCode.parentElement?.removeChild(this.highlightViewCode), this.highlightViewPre.parentElement?.removeChild(this.highlightViewPre), this.highlightView.parentElement?.removeChild(this.highlightView), this.bodyContainer.parentElement?.removeChild(this.bodyContainer), this.linenoViewCode.parentElement?.removeChild(this.linenoViewCode), this.linenoViewPre.parentElement?.removeChild(this.linenoViewPre), this.linenoView.parentElement?.removeChild(this.linenoView), this.headerViewSelect.parentElement?.removeChild(this.headerViewSelect), this.headerView.parentElement?.removeChild(this.headerView), this.container.parentElement?.removeChild(this.container);
 	}
 	get state() {
 		return JSON.stringify({
@@ -141,16 +141,10 @@ var s = class extends HTMLElement {
 		} catch {}
 		this.textareaContent.dirty = this.textareaContent.value !== t.text, this.textareaContent.value = t.text, this.textareaSelectionStart = o(t.text, t.selectionStart), this.textareaSelectionEnd = o(t.text, t.selectionEnd), this.textareaScrollPosition.dirty_top = this.textareaScrollPosition.top !== t.scrollTop, this.textareaScrollPosition.dirty_left = this.textareaScrollPosition.left !== t.scrollLeft, this.textareaScrollPosition.top = t.scrollTop, this.textareaScrollPosition.left = t.scrollLeft, this.reflectContentToTextarea(), this.reflectScrollPositionToTextarea();
 	}
-	requestTickAnimationFrame() {
-		this.tickAnimationFrameID === 0 && (this.tickAnimationFrameID = window.requestAnimationFrame((e) => this.handleTickAnimationFrame(e)));
-	}
-	handleTickAnimationFrame(e) {
-		this.tickAnimationFrameID = 0, this.storeScrollSize(), this.storeClientSize(), this.storeScrollPosition(), this.reflectTextContentToHeaderView(), this.reflectScrollSizeToLinenoView(), this.reflectClientSizeToLinenoView(), this.reflectScrollPositionToLinenoView(), this.reflectTextContentToLinenoView(), this.reflectScrollSizeToHighlightView(), this.reflectClientSizeToHighlightView(), this.reflectScrollPositionToHighlightView(), this.reflectTextContentToHighlightView(), this.reflectedScrollSize(), this.reflectedClientSize(), this.reflectedScrollPosition();
-	}
-	addHeaderViewEvent() {
+	addHeaderViewEvents() {
 		this.headerViewSelect.addEventListener("change", this.headerViewListenerChange);
 	}
-	removeHeaderViewEvent() {
+	removeHeaderViewEvents() {
 		this.headerViewSelect.removeEventListener("change", this.headerViewListenerChange);
 	}
 	handleHeaderViewChange(e) {
@@ -206,10 +200,10 @@ var s = class extends HTMLElement {
 			this.highlightViewCode.innerHTML = this.highlightViewState.rows.filter((e, t) => n <= t && t <= r).join("\n"), this.highlightView.scrollTop = this.linenoViewState.rows.length === 0 ? 0 : e - this.linenoViewState.rows[n].top, this.highlightViewState.dirty = !1;
 		}
 	}
-	addTextareaEvent() {
+	addTextareaEvents() {
 		this.textarea.addEventListener("keydown", this.textareaListenerKeydown), this.textarea.addEventListener("input", this.textareaListenerInput), this.textarea.addEventListener("scroll", this.textareaListenerScroll), this.textareaResizeObserver.observe(this.textarea), this.textarea.addEventListener("selectionchange", this.textareaListenerSelectionchange);
 	}
-	removeTextareaEvent() {
+	removeTextareaEvents() {
 		this.textarea.removeEventListener("keydown", this.textareaListenerKeydown), this.textarea.removeEventListener("input", this.textareaListenerInput), this.textarea.removeEventListener("scroll", this.textareaListenerScroll), this.textareaResizeObserver.unobserve(this.textarea), this.textareaResizeObserver.disconnect(), this.textarea.removeEventListener("selectionchange", this.textareaListenerSelectionchange);
 	}
 	handleTextareaKeyDown(e) {
@@ -290,10 +284,10 @@ var s = class extends HTMLElement {
 		let a = e + (t.charAt(i) === "," ? "" : ",");
 		this.insertValue(a, n, i);
 	}
-	addSuggestionViewEvent() {
+	addSuggestionViewEvents() {
 		this.suggestionViewSelect.addEventListener("keydown", this.suggestionViewListenerKeydown), document.addEventListener("click", this.suggestionViewListenerClick);
 	}
-	removeSuggestionViewEvent() {
+	removeSuggestionViewEvents() {
 		this.suggestionViewSelect.removeEventListener("keydown", this.suggestionViewListenerKeydown), document.removeEventListener("click", this.suggestionViewListenerClick);
 	}
 	handleSuggestionViewKeyDown(e) {
@@ -350,6 +344,12 @@ var s = class extends HTMLElement {
 			selectionEnd: t,
 			text: n
 		});
+	}
+	requestTickAnimationFrame() {
+		this.tickAnimationFrameID === 0 && (this.tickAnimationFrameID = window.requestAnimationFrame((e) => this.handleTickAnimationFrame(e)));
+	}
+	handleTickAnimationFrame(e) {
+		this.tickAnimationFrameID = 0, this.storeScrollSize(), this.storeClientSize(), this.storeScrollPosition(), this.reflectTextContentToHeaderView(), this.reflectScrollSizeToLinenoView(), this.reflectClientSizeToLinenoView(), this.reflectScrollPositionToLinenoView(), this.reflectTextContentToLinenoView(), this.reflectScrollSizeToHighlightView(), this.reflectClientSizeToHighlightView(), this.reflectScrollPositionToHighlightView(), this.reflectTextContentToHighlightView(), this.reflectedScrollSize(), this.reflectedClientSize(), this.reflectedScrollPosition();
 	}
 };
 //#endregion
