@@ -55,11 +55,11 @@ var s = class extends HTMLElement {
 	textareaResizeObserver;
 	textareaListenerSelectionchange;
 	textareaContent;
+	textareaSelectionStart;
+	textareaSelectionEnd;
 	textareaScrollSize;
 	textareaClientSize;
 	textareaScrollPosition;
-	textareaSelectionStart;
-	textareaSelectionEnd;
 	suggestionView;
 	suggestionViewSelect;
 	suggestionViewListenerKeydown;
@@ -81,6 +81,16 @@ var s = class extends HTMLElement {
 		}, this.textareaListenerKeydown = (e) => this.handleTextareaKeyDown(e), this.textareaListenerInput = (e) => this.handleTextareaInput(e), this.textareaListenerScroll = (e) => this.handleTextareaScroll(e), this.textareaResizeObserver = new ResizeObserver((e) => this.handleTextareaReSize(e)), this.textareaListenerSelectionchange = (e) => this.handleTextareaSelectionchange(e), this.textareaContent = {
 			value: "",
 			dirty: !1
+		}, this.textareaSelectionStart = {
+			position: 0,
+			column: 0,
+			row: 0,
+			dirty: !1
+		}, this.textareaSelectionEnd = {
+			position: 0,
+			column: 0,
+			row: 0,
+			dirty: !1
 		}, this.textareaScrollSize = {
 			width: 0,
 			height: 0,
@@ -94,14 +104,6 @@ var s = class extends HTMLElement {
 			left: 0,
 			dirty_top: !1,
 			dirty_left: !1
-		}, this.textareaSelectionStart = {
-			position: 0,
-			column: 0,
-			row: 0
-		}, this.textareaSelectionEnd = {
-			position: 0,
-			column: 0,
-			row: 0
 		}, this.suggestionViewListenerKeydown = (e) => this.handleSuggestionViewKeyDown(e), this.suggestionViewListenerClick = (e) => this.handleSuggestionViewClick(e), this.tickAnimationFrameID = 0;
 	}
 	connectedCallback() {
@@ -139,7 +141,9 @@ var s = class extends HTMLElement {
 			let n = JSON.parse(e);
 			a(n) && (t = n);
 		} catch {}
-		this.textareaContent.dirty = this.textareaContent.value !== t.text, this.textareaContent.value = t.text, this.textareaSelectionStart = o(t.text, t.selectionStart), this.textareaSelectionEnd = o(t.text, t.selectionEnd), this.textareaScrollPosition.dirty_top = this.textareaScrollPosition.top !== t.scrollTop, this.textareaScrollPosition.dirty_left = this.textareaScrollPosition.left !== t.scrollLeft, this.textareaScrollPosition.top = t.scrollTop, this.textareaScrollPosition.left = t.scrollLeft, this.reflectContentToTextarea(), this.reflectScrollPositionToTextarea();
+		this.textareaContent.dirty = this.textareaContent.value !== t.text, this.textareaContent.value = t.text;
+		let n = o(t.text, t.selectionStart), r = o(t.text, t.selectionEnd);
+		this.textareaSelectionStart.dirty = this.textareaSelectionStart.position !== n.position, this.textareaSelectionStart.position = n.position, this.textareaSelectionStart.column = n.column, this.textareaSelectionStart.row = n.row, this.textareaSelectionEnd.dirty = this.textareaSelectionEnd.position !== r.position, this.textareaSelectionEnd.position = r.position, this.textareaSelectionEnd.column = r.column, this.textareaSelectionEnd.row = r.row, this.textareaScrollPosition.dirty_top = this.textareaScrollPosition.top !== t.scrollTop, this.textareaScrollPosition.dirty_left = this.textareaScrollPosition.left !== t.scrollLeft, this.textareaScrollPosition.top = t.scrollTop, this.textareaScrollPosition.left = t.scrollLeft, this.reflectContentToTextarea(), this.reflectScrollPositionToTextarea();
 	}
 	addHeaderViewEvents() {
 		this.headerViewSelect.addEventListener("change", this.headerViewListenerChange);
@@ -172,7 +176,8 @@ var s = class extends HTMLElement {
 		this.textareaScrollPosition.dirty_top && this.linenoView && (this.linenoView.scrollTop = this.textareaScrollPosition.top);
 	}
 	reflectTextContentToLinenoView() {
-		if (this.linenoViewState.dirty && this.linenoViewCode) {
+		let e = this.linenoViewState.dirty, t = this.linenoViewState.dirty || this.textareaSelectionStart.dirty || this.textareaSelectionEnd.dirty;
+		if (e) {
 			this.linenoViewCode.innerHTML = this.linenoViewState.content;
 			let e = this.linenoViewCode.querySelectorAll("span"), t = e.length, n = [];
 			for (let r = 0; r < t; r++) {
@@ -183,6 +188,10 @@ var s = class extends HTMLElement {
 				});
 			}
 			this.linenoViewState.rows = n, this.linenoViewState.dirty = !1;
+		}
+		if (t) {
+			let e = this.textareaSelectionStart, t = this.textareaSelectionEnd, r = e.row, i = e.row < t.row && t.column === 0 ? t.row - 1 : t.row;
+			this.linenoViewCode.querySelectorAll("span." + n.selected).forEach((e) => e.classList.toggle(n.selected, !1)), this.linenoViewCode.querySelectorAll("span:nth-of-type(n+" + (r + 1) + "):nth-of-type(-n+" + (i + 1) + ")").forEach((e) => e.classList.toggle(n.selected, !0));
 		}
 	}
 	reflectScrollSizeToHighlightView() {
@@ -228,11 +237,17 @@ var s = class extends HTMLElement {
 		this.requestTickAnimationFrame();
 	}
 	handleTextareaSelectionchange(e) {
-		let t = this.textarea.selectionStart, r = this.textarea.selectionEnd, i = this.textarea.value, a = o(i, t), s = o(i, r), c = a.row, l = a.row < s.row && s.column === 0 ? s.row - 1 : s.row, u = this.textareaSelectionStart.row, d = this.textareaSelectionStart.row < this.textareaSelectionEnd.row && this.textareaSelectionEnd.column === 0 ? this.textareaSelectionEnd.row - 1 : this.textareaSelectionEnd.row;
-		(c !== u || l !== d) && (this.linenoViewCode.querySelectorAll("span:nth-of-type(n+" + (u + 1) + "):nth-of-type(-n+" + (d + 1) + ")").forEach((e) => e.classList.toggle(n.selected, !1)), this.linenoViewCode.querySelectorAll("span:nth-of-type(n+" + (c + 1) + "):nth-of-type(-n+" + (l + 1) + ")").forEach((e) => e.classList.toggle(n.selected, !0)), this.textareaSelectionStart = a, this.textareaSelectionEnd = s);
+		this.requestTickAnimationFrame();
 	}
 	reflectContentToTextarea() {
 		this.textareaContent.dirty && this.textarea && (this.textarea.value = this.textareaContent.value, this.textarea.selectionStart = this.textareaSelectionStart.position, this.textarea.selectionEnd = this.textareaSelectionEnd.position, this.textareaContent.dirty = !0, this.postWorkerUpdate());
+	}
+	storeSelection() {
+		let e = this.textarea.selectionStart, t = this.textarea.selectionEnd, n = this.textarea.value, r = o(n, e), i = o(n, t);
+		this.textareaSelectionStart.position !== r.position && (this.textareaSelectionStart.position = r.position, this.textareaSelectionStart.column = r.column, this.textareaSelectionStart.row = r.row, this.textareaSelectionStart.dirty = !0), this.textareaSelectionEnd.position !== i.position && (this.textareaSelectionEnd.position = i.position, this.textareaSelectionEnd.column = i.column, this.textareaSelectionEnd.row = i.row, this.textareaSelectionEnd.dirty = !0);
+	}
+	reflectedSelection() {
+		this.textareaSelectionStart.dirty = !1, this.textareaSelectionEnd.dirty = !1;
 	}
 	storeScrollSize() {
 		let e = this.textarea.scrollWidth, t = this.textarea.scrollHeight;
@@ -253,8 +268,8 @@ var s = class extends HTMLElement {
 		this.textareaScrollPosition.top !== e && (this.textareaScrollPosition.top = e, this.textareaScrollPosition.dirty_top = !0), this.textareaScrollPosition.left !== t && (this.textareaScrollPosition.left = t, this.textareaScrollPosition.dirty_left = !0);
 	}
 	reflectScrollPositionToTextarea() {
-		(this.textareaScrollPosition.dirty_top || this.textareaScrollPosition.dirty_left) && window.requestAnimationFrame(() => {
-			this.textarea && (this.textarea.scrollTop = this.textareaScrollPosition.top, this.textarea.scrollLeft = this.textareaScrollPosition.left);
+		(this.textareaScrollPosition.dirty_top || this.textareaScrollPosition.dirty_left) && this.textarea && window.requestAnimationFrame(() => {
+			this.textarea.scrollTop = this.textareaScrollPosition.top, this.textarea.scrollLeft = this.textareaScrollPosition.left;
 		});
 	}
 	reflectedScrollPosition() {
@@ -349,7 +364,7 @@ var s = class extends HTMLElement {
 		this.tickAnimationFrameID === 0 && (this.tickAnimationFrameID = window.requestAnimationFrame((e) => this.handleTickAnimationFrame(e)));
 	}
 	handleTickAnimationFrame(e) {
-		this.tickAnimationFrameID = 0, this.storeScrollSize(), this.storeClientSize(), this.storeScrollPosition(), this.reflectTextContentToHeaderView(), this.reflectScrollSizeToLinenoView(), this.reflectClientSizeToLinenoView(), this.reflectScrollPositionToLinenoView(), this.reflectTextContentToLinenoView(), this.reflectScrollSizeToHighlightView(), this.reflectClientSizeToHighlightView(), this.reflectScrollPositionToHighlightView(), this.reflectTextContentToHighlightView(), this.reflectedScrollSize(), this.reflectedClientSize(), this.reflectedScrollPosition();
+		this.tickAnimationFrameID = 0, this.storeSelection(), this.storeScrollSize(), this.storeClientSize(), this.storeScrollPosition(), this.reflectTextContentToHeaderView(), this.reflectScrollSizeToLinenoView(), this.reflectClientSizeToLinenoView(), this.reflectScrollPositionToLinenoView(), this.reflectTextContentToLinenoView(), this.reflectScrollSizeToHighlightView(), this.reflectClientSizeToHighlightView(), this.reflectScrollPositionToHighlightView(), this.reflectTextContentToHighlightView(), this.reflectedSelection(), this.reflectedScrollSize(), this.reflectedClientSize(), this.reflectedScrollPosition();
 	}
 };
 //#endregion
