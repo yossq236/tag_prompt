@@ -19,3 +19,23 @@ export function el<T extends HTMLElement,TC extends HTMLElement>(tagName: string
     }
     return element;
 }
+
+export interface Cursor {
+    position: number;
+    column: number;
+    row: number;
+}
+
+export function getCursor(text: string, position: number): Cursor {
+    const target = text.substring(0, position);
+    const row = (target.match(/\n/g) || []).length;
+    const column = position - target.lastIndexOf('\n') - 1;
+    return {position: position, row: row, column: column};
+}
+
+export function getEditingWord(text: string, position: number): string {
+    let word_start = position;
+    let word_end = position;
+    for (let i = position - 1; 0 <= i && !isDelimiter(text.charAt(i)); word_start = i--);
+    return text.substring(word_start, word_end);
+}

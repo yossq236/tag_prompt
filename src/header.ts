@@ -1,6 +1,6 @@
 import { HEADER_TOKENS } from "./constants";
 
-const PATTERN = RegExp(Object.values(HEADER_TOKENS).map(v => (v instanceof RegExp) ? v.source : RegExp.escape(v)).join('|'),'g');
+const PATTERN = new RegExp(Object.values(HEADER_TOKENS).map(v => (v instanceof RegExp) ? v.source : RegExp.escape(v)).join('|'),'g');
 
 function split(code: string): Array<string> {
     const result = new Array<string>;
@@ -92,8 +92,8 @@ function summary(tokens: Array<string>): Array<Header> {
     return result;
 }
 
-export function getHeaderViewHtml(code: string): string {
-    const headers = summary(split(code));
+export function getHeaderViewHtml(text: string): string {
+    const headers = summary(split(text));
     const enable = '[*]&nbsp;';
     const disable = '&nbsp;'.repeat(4);
     return headers.map<string>(v => '<option value="' + v.row + '">' + ((0 < v.activeChars) ? enable : disable) + v.label.trim() + '</option>').join('\n');

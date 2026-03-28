@@ -1,6 +1,6 @@
 import { HIGHLIGHT_TOKENS } from './constants';
 
-const PATTERN = RegExp(Object.values(HIGHLIGHT_TOKENS).map(v => (v instanceof RegExp) ? v.source : RegExp.escape(v)).join('|'),'g');
+const PATTERN = new RegExp(Object.values(HIGHLIGHT_TOKENS).map(v => (v instanceof RegExp) ? v.source : RegExp.escape(v)).join('|'),'g');
 
 export class Highlight {
     private header: boolean;
@@ -17,9 +17,9 @@ export class Highlight {
         return ((this.header) ? '1' : '0') + ((this.lineComment) ? '1' : '0') + ((this.blockComment) ? '1' : '0') + this.parenthesisDepth;
     }
     public unserialize(value: string): void {
-        this.header = value.substring(0,1) === '1';
-        this.lineComment = value.substring(1,2) === '1';
-        this.blockComment = value.substring(2,3) === '1';
+        this.header = value[0] === '1';
+        this.lineComment = value[1] === '1';
+        this.blockComment = value[2] === '1';
         this.parenthesisDepth = parseInt(value.substring(3));
     }
     public reset(): void {
@@ -118,10 +118,10 @@ export class Highlight {
     }
 }
 
-export function getHighlightViewHtml(code: string, caret: number): string {
+export function getHighlightViewHtml(text: string, caret: number): string {
     const highlight = new Highlight();
-    return highlight.highlight(code.substring(0, caret))
+    return highlight.highlight(text.substring(0, caret))
         + '<span class="caret"></span>'
-        + highlight.highlight(code.substring(caret))
+        + highlight.highlight(text.substring(caret))
         + highlight.highlight();
 }

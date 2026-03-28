@@ -1,6 +1,6 @@
 import EditorWorker from './editorWorker?sharedworker&url';
 import EditorStyles from './assets/editor.module.css';
-import { isDelimiter, el } from './utils';
+import { isDelimiter, el, getCursor } from './utils';
 import { MAX_SUGGESTION_VIEW_ROW } from './constants';
 
 interface EditorState {
@@ -58,29 +58,15 @@ interface HighlightViewState {
     dirty: boolean;
 }
 
+interface SuggestionViewState {
+    content: string;
+    visible: boolean;
+    dirty: boolean;
+}
+
 function isValidEditorState(obj: unknown): obj is EditorState {
     return (obj !== null) && (typeof obj === 'object') && ('text' in obj) && ('selectionStart' in obj) && ('selectionEnd' in obj) && ('scrollTop' in obj) && ('scrollLeft' in obj);
 }
-
-interface Cursor {
-    position: number;
-    column: number;
-    row: number;
-}
-
-function getCursor(text: string, position: number): Cursor {
-    const target = text.substring(0, position);
-    const row = (target.match(/\n/g) || []).length;
-    const column = position - target.lastIndexOf('\n') - 1;
-    return {position: position, row: row, column};
-}
-
-// function getWord(text: string, position: number): string {
-//     let word_start = position;
-//     let word_end = position;
-//     for (let i = position - 1; 0 <= i && !isDelimiter(text.charAt(i)); word_start = i--);
-//     return text.substring(word_start, word_end);
-// }
 
 export class Editor extends HTMLElement {
     // containor
@@ -120,6 +106,7 @@ export class Editor extends HTMLElement {
     private suggestionViewSelect: HTMLSelectElement | undefined;
     private suggestionViewListenerKeydown: (event: KeyboardEvent) => void;
     private suggestionViewListenerClick: (event: MouseEvent) => void;
+    private suggestionViewState: SuggestionViewState;
     // worker
     private worker: SharedWorker | undefined;
     // tick animation frame
@@ -153,6 +140,7 @@ export class Editor extends HTMLElement {
         // initialize suggestion view
         this.suggestionViewListenerKeydown = e => this.handleSuggestionViewKeyDown(e);
         this.suggestionViewListenerClick = e => this.handleSuggestionViewClick(e);
+        this.suggestionViewState = {content: '', visible: false, dirty: false};
         // initialize animation frame
         this.tickAnimationFrameID = 0;
     }
@@ -160,6 +148,7 @@ export class Editor extends HTMLElement {
     // Web Components - lifecycle callbacks
 
     public connectedCallback() {
+        // Implemented using Light DOM.
         // create container
         this.container = el('div', EditorStyles.container, undefined, [
             // create header view
@@ -188,6 +177,8 @@ export class Editor extends HTMLElement {
                 ])),
             ])),
         ]);
+        // mount container
+        this.appendChild(this.container);
         // start worker
         this.worker = new SharedWorker(EditorWorker);
         this.worker.port.onmessage = e => this.handleWorkerMessage(e);
@@ -199,8 +190,6 @@ export class Editor extends HTMLElement {
         this.addTextareaEvents();
         // add event suggestion view
         this.addSuggestionViewEvents();
-        // mount editor element
-        this.appendChild(this.container);
         // reflect textarea
         this.reflectContentToTextarea();
         this.reflectScrollPositionToTextarea();
@@ -226,7 +215,7 @@ export class Editor extends HTMLElement {
         this.highlightView!.parentElement?.removeChild(this.highlightView!);
         // remove body container
         this.bodyContainer!.parentElement?.removeChild(this.bodyContainer!);
-        // remove highlight view
+        // remove lineno view
         this.linenoViewCode!.parentElement?.removeChild(this.linenoViewCode!);
         this.linenoViewPre!.parentElement?.removeChild(this.linenoViewPre!);
         this.linenoView!.parentElement?.removeChild(this.linenoView!);
@@ -304,7 +293,7 @@ export class Editor extends HTMLElement {
         }
     }
 
-    private reflectTextContentToHeaderView() {
+    private reflectContentToHeaderView() {
         if (this.headerViewState.dirty) {
             const selected = this.headerViewSelect!.selectedIndex;
             this.headerViewSelect!.innerHTML = this.headerViewState.content;
@@ -333,7 +322,7 @@ export class Editor extends HTMLElement {
         }
     }
 
-    private reflectTextContentToLinenoView() {
+    private reflectContentToLinenoView() {
         const viewStateDirty = this.linenoViewState.dirty;
         const selectionDirty = this.linenoViewState.dirty || this.textareaSelectionStart.dirty || this.textareaSelectionEnd.dirty;
         if (viewStateDirty) {
@@ -379,7 +368,7 @@ export class Editor extends HTMLElement {
         }
     }
 
-    private reflectTextContentToHighlightView() {
+    private reflectContentToHighlightView() {
         if (this.textareaScrollPosition.dirty_top || this.textareaClientSize.dirty || this.highlightViewState.dirty) {
             const viewportTop = this.textareaScrollPosition.top;
             const vireportBottom = viewportTop + this.textareaClientSize.height;
@@ -664,36 +653,42 @@ export class Editor extends HTMLElement {
         }
     }
 
-    private reflectCaretPositionToSuggestionView() {
-        const caret = this.highlightViewCode!.querySelector('span.caret') as HTMLSpanElement;
-        if (caret) {
-            this.suggestionView!.style.top = (caret.offsetTop + caret.offsetHeight - this.highlightView!.scrollTop) + 'px';
-            this.suggestionView!.style.left = (caret.offsetLeft - this.highlightView!.scrollLeft) + 'px';
+    private reflectContentToSuggestionView() {
+        const dirty = this.textareaContent.dirty || this.suggestionViewState.dirty;
+        if (dirty) {
+            const caret = this.highlightViewCode!.querySelector('span.caret') as HTMLSpanElement;
+            if (this.suggestionViewState.visible && caret) {
+                this.suggestionViewSelect!.innerHTML = this.suggestionViewState.content;
+                if (this.suggestionView!.style.visibility !== 'visible') {
+                    this.suggestionViewSelect!.selectedIndex = -1;
+                    this.suggestionViewSelect!.scrollTop = 0;
+                }
+                this.suggestionView!.style.top = (caret.offsetTop + caret.offsetHeight - this.highlightView!.scrollTop) + 'px';
+                this.suggestionView!.style.left = (caret.offsetLeft - this.highlightView!.scrollLeft) + 'px';
+                this.suggestionView!.style.visibility = 'visible';
+            } else if (this.suggestionView!.style.visibility === 'visible') {
+                this.suggestionView!.style.visibility = 'hidden';
+            }
         }
+        this.suggestionViewState.dirty = false;
     }
 
     private isVisibleSuggestionView(): boolean {
         return this.suggestionView!.style.visibility === 'visible';
     }
 
-    private visibleSuggestionView() {
-        const caret = this.highlightViewCode!.querySelector('span.caret') as HTMLSpanElement;
-        if (caret) {
-            if (!this.isVisibleSuggestionView()) {
-                this.suggestionView!.style.visibility = 'visible';
-            }
-        }
-    }
-
     private hiddenSuggestionView() {
-        if (this.isVisibleSuggestionView()) {
-            this.suggestionView!.style.visibility = 'hidden';
+        if (this.suggestionViewState.visible) {
+            this.suggestionViewState.visible = false;
+            this.suggestionViewState.dirty = true;
+            this.requestTickAnimationFrame();
         }
     }
 
     private focusSuggestionView() {
         if (this.isVisibleSuggestionView()) {
             this.suggestionViewSelect!.selectedIndex = 0;
+            this.suggestionViewSelect!.scrollTop = 0;
             this.suggestionViewSelect!.focus();
         }
     }
@@ -729,15 +724,11 @@ export class Editor extends HTMLElement {
             this.requestTickAnimationFrame();
         }
         // suggestion view
-        if (0 < event.data.suggestionViewHtml.length) {
-            this.suggestionViewSelect!.innerHTML = event.data.suggestionViewHtml;
-            this.suggestionViewSelect!.selectedIndex = -1;
-            this.visibleSuggestionView();
-            window.requestAnimationFrame(() => {
-                this.reflectCaretPositionToSuggestionView();
-            });
-        } else {
-            this.hiddenSuggestionView();
+        if (this.suggestionViewState.content !== event.data.suggestionViewHtml) {
+            this.suggestionViewState.content = event.data.suggestionViewHtml;
+            this.suggestionViewState.visible = (event.data.suggestionViewHtml as string).length !== 0;
+            this.suggestionViewState.dirty = true;
+            this.requestTickAnimationFrame();
         }
     }
 
@@ -781,17 +772,19 @@ export class Editor extends HTMLElement {
         this.storeClientSize();
         this.storeScrollPosition();
         // header view
-        this.reflectTextContentToHeaderView();
+        this.reflectContentToHeaderView();
         // lineno view
         this.reflectScrollSizeToLinenoView();
         this.reflectClientSizeToLinenoView();
         this.reflectScrollPositionToLinenoView();
-        this.reflectTextContentToLinenoView();
+        this.reflectContentToLinenoView();
         // highlight view
         this.reflectScrollSizeToHighlightView();
         this.reflectClientSizeToHighlightView();
         this.reflectScrollPositionToHighlightView();
-        this.reflectTextContentToHighlightView();
+        this.reflectContentToHighlightView();
+        // suggestion view
+        this.reflectContentToSuggestionView();
         // end
         this.reflectedSelection();
         this.reflectedScrollSize();
