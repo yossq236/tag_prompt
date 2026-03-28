@@ -91,7 +91,7 @@ export class Editor extends HTMLElement {
     // textarea
     private textarea: HTMLTextAreaElement | undefined;
     private textareaListenerKeydown: (event: KeyboardEvent) => void;
-    private textareaListenerInput: (event: Event) => void;
+    private textareaListenerInput: (event: InputEvent) => void;
     private textareaListenerScroll: (event: Event) => void;
     private textareaResizeObserver: ResizeObserver;
     private textareaListenerSelectionchange: (event: Event) => void;
@@ -170,7 +170,8 @@ export class Editor extends HTMLElement {
                     ])),
                 ])),
                 // create textarea
-                (this.textarea = el('textarea', 'comfy-multiline-input', {"data-capture-wheel": "true"})), // It seems data-capture-wheel="true" is required to capture wheel events in Node 2.0.
+                // - It seems data-capture-wheel="true" is required to capture wheel events in Node 2.0.
+                (this.textarea = el('textarea', 'comfy-multiline-input', {"spellcheck": "false", "data-capture-wheel": "true"})),
                 // create suggestion view
                 (this.suggestionView = el('div', EditorStyles.suggestionView, undefined, [
                     (this.suggestionViewSelect = el('select', undefined, {'size': MAX_SUGGESTION_VIEW_ROW.toString()})),
@@ -351,7 +352,12 @@ export class Editor extends HTMLElement {
 
     private reflectScrollSizeToHighlightView() {
         if (this.textareaScrollSize.dirty) {
+            const viewport_top = this.textareaScrollPosition.top;
+            const vireport_bottom = viewport_top + this.textareaClientSize.height;
+            const row_begin = Math.max(0, this.linenoViewState.rows.findIndex(v => viewport_top < v.bottom));
+            const row_end = Math.max(0, this.linenoViewState.rows.findLastIndex(v => v.top < vireport_bottom));
             this.highlightViewPre!.style.width = this.textareaScrollSize.width + 'px';
+            this.highlightViewPre!.style.height = (this.linenoViewState.rows[row_end].bottom - this.linenoViewState.rows[row_begin].top) + 'px';
         }
     }
 
@@ -370,12 +376,12 @@ export class Editor extends HTMLElement {
 
     private reflectContentToHighlightView() {
         if (this.textareaScrollPosition.dirty_top || this.textareaClientSize.dirty || this.highlightViewState.dirty) {
-            const viewportTop = this.textareaScrollPosition.top;
-            const vireportBottom = viewportTop + this.textareaClientSize.height;
-            const row_begin = Math.max(0, this.linenoViewState.rows.findIndex(v => viewportTop < v.bottom));
-            const row_end = Math.max(0, this.linenoViewState.rows.findLastIndex(v => v.top < vireportBottom));
+            const viewport_top = this.textareaScrollPosition.top;
+            const vireport_bottom = viewport_top + this.textareaClientSize.height;
+            const row_begin = Math.max(0, this.linenoViewState.rows.findIndex(v => viewport_top < v.bottom));
+            const row_end = Math.max(0, this.linenoViewState.rows.findLastIndex(v => v.top < vireport_bottom));
             this.highlightViewCode!.innerHTML = this.highlightViewState.rows.filter((_,i) => row_begin <= i && i <= row_end).join('\n');
-            this.highlightView!.scrollTop = (this.linenoViewState.rows.length === 0) ? 0 : viewportTop - this.linenoViewState.rows[row_begin].top;
+            this.highlightView!.scrollTop = viewport_top - this.linenoViewState.rows[row_begin].top;
             this.highlightViewState.dirty = false;
         }
     }
@@ -434,7 +440,7 @@ export class Editor extends HTMLElement {
         }
     }
 
-    private handleTextareaInput(_event: Event): void {
+    private handleTextareaInput(_event: InputEvent): void {
         this.requestTickAnimationFrame();
         this.postWorkerInput();
     }

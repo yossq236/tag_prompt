@@ -1,13 +1,13 @@
 import { app as e } from "/scripts/app.js";
 //#region src/editorWorker.ts?sharedworker&url
 var t = "/extensions/tag_prompt/assets/editorWorker.js", n = {
-	container: "_container_wi31u_13",
-	linenoView: "_lineno-view_wi31u_73",
-	selected: "_selected_wi31u_75",
-	headerView: "_header-view_wi31u_89",
-	bodyContainer: "_body-container_wi31u_175",
-	highlightView: "_highlight-view_wi31u_253",
-	suggestionView: "_suggestion-view_wi31u_303"
+	container: "_container_1y30p_13",
+	linenoView: "_lineno-view_1y30p_73",
+	selected: "_selected_1y30p_75",
+	headerView: "_header-view_1y30p_89",
+	bodyContainer: "_body-container_1y30p_175",
+	highlightView: "_highlight-view_1y30p_253",
+	suggestionView: "_suggestion-view_1y30p_303"
 };
 //#endregion
 //#region src/utils.ts
@@ -117,7 +117,10 @@ var s = class extends HTMLElement {
 			this.linenoView = i("div", n.linenoView, void 0, [this.linenoViewPre = i("pre", void 0, void 0, [this.linenoViewCode = i("code")])]),
 			this.bodyContainer = i("div", n.bodyContainer, void 0, [
 				this.highlightView = i("div", n.highlightView, void 0, [this.highlightViewPre = i("pre", void 0, void 0, [this.highlightViewCode = i("code")])]),
-				this.textarea = i("textarea", "comfy-multiline-input", { "data-capture-wheel": "true" }),
+				this.textarea = i("textarea", "comfy-multiline-input", {
+					spellcheck: "false",
+					"data-capture-wheel": "true"
+				}),
 				this.suggestionView = i("div", n.suggestionView, void 0, [this.suggestionViewSelect = i("select", void 0, { size: "10" })])
 			])
 		]), this.appendChild(this.container), this.worker = new SharedWorker(t), this.worker.port.onmessage = (e) => this.handleWorkerMessage(e), this.tickAnimationFrameID = 0, this.addHeaderViewEvents(), this.addTextareaEvents(), this.addSuggestionViewEvents(), this.reflectContentToTextarea(), this.reflectScrollPositionToTextarea();
@@ -200,7 +203,10 @@ var s = class extends HTMLElement {
 		}
 	}
 	reflectScrollSizeToHighlightView() {
-		this.textareaScrollSize.dirty && (this.highlightViewPre.style.width = this.textareaScrollSize.width + "px");
+		if (this.textareaScrollSize.dirty) {
+			let e = this.textareaScrollPosition.top, t = e + this.textareaClientSize.height, n = Math.max(0, this.linenoViewState.rows.findIndex((t) => e < t.bottom)), r = Math.max(0, this.linenoViewState.rows.findLastIndex((e) => e.top < t));
+			this.highlightViewPre.style.width = this.textareaScrollSize.width + "px", this.highlightViewPre.style.height = this.linenoViewState.rows[r].bottom - this.linenoViewState.rows[n].top + "px";
+		}
 	}
 	reflectClientSizeToHighlightView() {
 		this.textareaClientSize.dirty && (this.highlightView.style.width = this.textareaClientSize.width + "px", this.highlightView.style.height = this.textareaClientSize.height + "px");
@@ -211,7 +217,7 @@ var s = class extends HTMLElement {
 	reflectContentToHighlightView() {
 		if (this.textareaScrollPosition.dirty_top || this.textareaClientSize.dirty || this.highlightViewState.dirty) {
 			let e = this.textareaScrollPosition.top, t = e + this.textareaClientSize.height, n = Math.max(0, this.linenoViewState.rows.findIndex((t) => e < t.bottom)), r = Math.max(0, this.linenoViewState.rows.findLastIndex((e) => e.top < t));
-			this.highlightViewCode.innerHTML = this.highlightViewState.rows.filter((e, t) => n <= t && t <= r).join("\n"), this.highlightView.scrollTop = this.linenoViewState.rows.length === 0 ? 0 : e - this.linenoViewState.rows[n].top, this.highlightViewState.dirty = !1;
+			this.highlightViewCode.innerHTML = this.highlightViewState.rows.filter((e, t) => n <= t && t <= r).join("\n"), this.highlightView.scrollTop = e - this.linenoViewState.rows[n].top, this.highlightViewState.dirty = !1;
 		}
 	}
 	addTextareaEvents() {

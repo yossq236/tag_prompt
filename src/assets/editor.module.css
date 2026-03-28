@@ -142,7 +142,7 @@ yossq236-custom-editor-element {
 
     pre {
         /* width: script control - Proportional to textarea scrollWidth */
-        height: auto;
+        /* height: script control -  */
 
         margin: 0;
     }
