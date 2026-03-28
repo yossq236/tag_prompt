@@ -55,6 +55,10 @@ interface LinenoViewState {
 interface HighlightViewState {
     content: string;
     rows: Array<string>;
+    viewport_top: number;
+    viewport_bottom: number;
+    row_start: number;
+    row_end: number;
     dirty: boolean;
 }
 
@@ -124,14 +128,14 @@ export class Editor extends HTMLElement {
         this.linenoViewState = {content: '', rows: new Array<RowPosition>, dirty: false};
         // initialize body container
         // initialize highlight view
-        this.highlightViewState = {content: '', rows: new Array<string>, dirty: false};
+        this.highlightViewState = {content: '', rows: new Array<string>, viewport_top: 0, viewport_bottom: 0,row_start: 0, row_end: 0, dirty: false};
         // initialize textarea
         this.textareaListenerKeydown = e => this.handleTextareaKeyDown(e);
         this.textareaListenerInput = e => this.handleTextareaInput(e);
         this.textareaListenerScroll = e => this.handleTextareaScroll(e);
         this.textareaResizeObserver = new ResizeObserver(e => this.handleTextareaReSize(e));
         this.textareaListenerSelectionchange = e => this.handleTextareaSelectionchange(e);
-        this.textareaContent = {value: '', dirty: false};
+        this.textareaContent = {value: '', dirty: true};
         this.textareaSelectionStart = {position: 0, column: 0, row: 0, dirty: false};
         this.textareaSelectionEnd = {position: 0, column: 0, row: 0, dirty: false};
         this.textareaScrollSize = {width: 0, height: 0, dirty: false};
@@ -348,16 +352,11 @@ export class Editor extends HTMLElement {
         }
     }
 
-    // highlight view 
+    // highlight view
 
     private reflectScrollSizeToHighlightView() {
         if (this.textareaScrollSize.dirty) {
-            const viewport_top = this.textareaScrollPosition.top;
-            const vireport_bottom = viewport_top + this.textareaClientSize.height;
-            const row_begin = Math.max(0, this.linenoViewState.rows.findIndex(v => viewport_top < v.bottom));
-            const row_end = Math.max(0, this.linenoViewState.rows.findLastIndex(v => v.top < vireport_bottom));
             this.highlightViewPre!.style.width = this.textareaScrollSize.width + 'px';
-            this.highlightViewPre!.style.height = (this.linenoViewState.rows[row_end].bottom - this.linenoViewState.rows[row_begin].top) + 'px';
         }
     }
 
@@ -375,14 +374,39 @@ export class Editor extends HTMLElement {
     }
 
     private reflectContentToHighlightView() {
-        if (this.textareaScrollPosition.dirty_top || this.textareaClientSize.dirty || this.highlightViewState.dirty) {
+        if (this.textareaClientSize.dirty || this.textareaScrollPosition.dirty_top || this.highlightViewState.dirty) {
             const viewport_top = this.textareaScrollPosition.top;
-            const vireport_bottom = viewport_top + this.textareaClientSize.height;
-            const row_begin = Math.max(0, this.linenoViewState.rows.findIndex(v => viewport_top < v.bottom));
-            const row_end = Math.max(0, this.linenoViewState.rows.findLastIndex(v => v.top < vireport_bottom));
-            this.highlightViewCode!.innerHTML = this.highlightViewState.rows.filter((_,i) => row_begin <= i && i <= row_end).join('\n');
-            this.highlightView!.scrollTop = viewport_top - this.linenoViewState.rows[row_begin].top;
-            this.highlightViewState.dirty = false;
+            const viewport_bottom = viewport_top + this.textareaClientSize.height;
+            const row_start = Math.max(0, this.linenoViewState.rows.findIndex(v => viewport_top < v.bottom));
+            const row_end = Math.max(0, this.linenoViewState.rows.findLastIndex(v => v.top < viewport_bottom));
+            // update row_start, row_end
+            if (this.highlightViewState.row_start !== row_start || this.highlightViewState.row_end !== row_end) {
+                this.highlightViewState.row_start = row_start;
+                this.highlightViewState.row_end = row_end;
+                this.highlightViewState.dirty = true;
+            }
+            // update viewport_top, viewport_bottom
+            if (this.highlightViewState.viewport_top !== viewport_top || this.highlightViewState.viewport_bottom !== viewport_bottom) {
+                this.highlightViewState.viewport_top = viewport_top;
+                this.highlightViewState.viewport_bottom = viewport_bottom;
+            }
+            // update content height
+            const cur_content_height = this.highlightViewState.row_end - this.highlightViewState.row_start;
+            const new_content_height = row_end - row_start;
+            if (new_content_height !== cur_content_height) {
+                this.highlightViewPre!.style.height = (((row_end < this.linenoViewState.rows.length) ? this.linenoViewState.rows[row_end].bottom : 0) - ((row_start < this.linenoViewState.rows.length) ? this.linenoViewState.rows[row_start].top : 0)) + 'px';
+            }
+            // update content scroll position top
+            const cur_sctoll_top = this.highlightViewState.viewport_top - ((this.highlightViewState.row_start < this.linenoViewState.rows.length) ? this.linenoViewState.rows[this.highlightViewState.row_start].top : 0);
+            const new_scroll_top = viewport_top - ((row_start < this.linenoViewState.rows.length) ? this.linenoViewState.rows[row_start].top : 0);
+            if (new_scroll_top !== cur_sctoll_top) {
+                this.highlightView!.scrollTop = new_scroll_top;
+            }
+            // update content
+            if (this.highlightViewState.dirty) {
+                this.highlightViewCode!.innerHTML = this.highlightViewState.rows.filter((_,i) => row_start <= i && i <= row_end).join('\n');
+                this.highlightViewState.dirty = false;
+            }
         }
     }
 

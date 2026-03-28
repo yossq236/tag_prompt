@@ -78,10 +78,14 @@ var s = class extends HTMLElement {
 		}, this.highlightViewState = {
 			content: "",
 			rows: [],
+			viewport_top: 0,
+			viewport_bottom: 0,
+			row_start: 0,
+			row_end: 0,
 			dirty: !1
 		}, this.textareaListenerKeydown = (e) => this.handleTextareaKeyDown(e), this.textareaListenerInput = (e) => this.handleTextareaInput(e), this.textareaListenerScroll = (e) => this.handleTextareaScroll(e), this.textareaResizeObserver = new ResizeObserver((e) => this.handleTextareaReSize(e)), this.textareaListenerSelectionchange = (e) => this.handleTextareaSelectionchange(e), this.textareaContent = {
 			value: "",
-			dirty: !1
+			dirty: !0
 		}, this.textareaSelectionStart = {
 			position: 0,
 			column: 0,
@@ -203,10 +207,7 @@ var s = class extends HTMLElement {
 		}
 	}
 	reflectScrollSizeToHighlightView() {
-		if (this.textareaScrollSize.dirty) {
-			let e = this.textareaScrollPosition.top, t = e + this.textareaClientSize.height, n = Math.max(0, this.linenoViewState.rows.findIndex((t) => e < t.bottom)), r = Math.max(0, this.linenoViewState.rows.findLastIndex((e) => e.top < t));
-			this.highlightViewPre.style.width = this.textareaScrollSize.width + "px", this.highlightViewPre.style.height = this.linenoViewState.rows[r].bottom - this.linenoViewState.rows[n].top + "px";
-		}
+		this.textareaScrollSize.dirty && (this.highlightViewPre.style.width = this.textareaScrollSize.width + "px");
 	}
 	reflectClientSizeToHighlightView() {
 		this.textareaClientSize.dirty && (this.highlightView.style.width = this.textareaClientSize.width + "px", this.highlightView.style.height = this.textareaClientSize.height + "px");
@@ -215,9 +216,13 @@ var s = class extends HTMLElement {
 		this.textareaScrollPosition.dirty_left && (this.highlightView.scrollLeft = this.textareaScrollPosition.left);
 	}
 	reflectContentToHighlightView() {
-		if (this.textareaScrollPosition.dirty_top || this.textareaClientSize.dirty || this.highlightViewState.dirty) {
+		if (this.textareaClientSize.dirty || this.textareaScrollPosition.dirty_top || this.highlightViewState.dirty) {
 			let e = this.textareaScrollPosition.top, t = e + this.textareaClientSize.height, n = Math.max(0, this.linenoViewState.rows.findIndex((t) => e < t.bottom)), r = Math.max(0, this.linenoViewState.rows.findLastIndex((e) => e.top < t));
-			this.highlightViewCode.innerHTML = this.highlightViewState.rows.filter((e, t) => n <= t && t <= r).join("\n"), this.highlightView.scrollTop = e - this.linenoViewState.rows[n].top, this.highlightViewState.dirty = !1;
+			(this.highlightViewState.row_start !== n || this.highlightViewState.row_end !== r) && (this.highlightViewState.row_start = n, this.highlightViewState.row_end = r, this.highlightViewState.dirty = !0), (this.highlightViewState.viewport_top !== e || this.highlightViewState.viewport_bottom !== t) && (this.highlightViewState.viewport_top = e, this.highlightViewState.viewport_bottom = t);
+			let i = this.highlightViewState.row_end - this.highlightViewState.row_start;
+			r - n !== i && (this.highlightViewPre.style.height = (r < this.linenoViewState.rows.length ? this.linenoViewState.rows[r].bottom : 0) - (n < this.linenoViewState.rows.length ? this.linenoViewState.rows[n].top : 0) + "px");
+			let a = this.highlightViewState.viewport_top - (this.highlightViewState.row_start < this.linenoViewState.rows.length ? this.linenoViewState.rows[this.highlightViewState.row_start].top : 0), o = e - (n < this.linenoViewState.rows.length ? this.linenoViewState.rows[n].top : 0);
+			o !== a && (this.highlightView.scrollTop = o), this.highlightViewState.dirty && (this.highlightViewCode.innerHTML = this.highlightViewState.rows.filter((e, t) => n <= t && t <= r).join("\n"), this.highlightViewState.dirty = !1);
 		}
 	}
 	addTextareaEvents() {
