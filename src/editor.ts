@@ -379,6 +379,10 @@ export class Editor extends HTMLElement {
             const viewport_bottom = viewport_top + this.textareaClientSize.height;
             const row_start = Math.max(0, this.linenoViewState.rows.findIndex(v => viewport_top < v.bottom));
             const row_end = Math.max(0, this.linenoViewState.rows.findLastIndex(v => v.top < viewport_bottom));
+            const cur_content_height = this.highlightViewState.row_end - this.highlightViewState.row_start;
+            const new_content_height = row_end - row_start;
+            const cur_sctoll_top = this.highlightViewState.viewport_top - ((this.highlightViewState.row_start < this.linenoViewState.rows.length) ? this.linenoViewState.rows[this.highlightViewState.row_start].top : 0);
+            const new_scroll_top = viewport_top - ((row_start < this.linenoViewState.rows.length) ? this.linenoViewState.rows[row_start].top : 0);
             // update row_start, row_end
             if (this.highlightViewState.row_start !== row_start || this.highlightViewState.row_end !== row_end) {
                 this.highlightViewState.row_start = row_start;
@@ -391,14 +395,10 @@ export class Editor extends HTMLElement {
                 this.highlightViewState.viewport_bottom = viewport_bottom;
             }
             // update content height
-            const cur_content_height = this.highlightViewState.row_end - this.highlightViewState.row_start;
-            const new_content_height = row_end - row_start;
             if (new_content_height !== cur_content_height) {
                 this.highlightViewPre!.style.height = (((row_end < this.linenoViewState.rows.length) ? this.linenoViewState.rows[row_end].bottom : 0) - ((row_start < this.linenoViewState.rows.length) ? this.linenoViewState.rows[row_start].top : 0)) + 'px';
             }
             // update content scroll position top
-            const cur_sctoll_top = this.highlightViewState.viewport_top - ((this.highlightViewState.row_start < this.linenoViewState.rows.length) ? this.linenoViewState.rows[this.highlightViewState.row_start].top : 0);
-            const new_scroll_top = viewport_top - ((row_start < this.linenoViewState.rows.length) ? this.linenoViewState.rows[row_start].top : 0);
             if (new_scroll_top !== cur_sctoll_top) {
                 this.highlightView!.scrollTop = new_scroll_top;
             }
