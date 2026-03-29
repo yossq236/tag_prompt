@@ -28,10 +28,14 @@ yossq236-custom-editor-element {
 
     background: var(--comfy-input-bg);
     color: var(--input-text);
+
+    textarea,select {
+        outline: none;
+    }
 }
 
 /* container focus-visible */
-.container:has(textarea:focus-visible) {
+.container:has(textarea:focus-visible,select:focus-visible) {
     outline: -webkit-focus-ring-color auto 1px;
 
     .lineno-view {
@@ -108,7 +112,7 @@ yossq236-custom-editor-element {
         height: 100%;
 
         margin: 0;
-        outline: none;
+        border: none;
         padding: 0;
 
         overflow-x: auto;
@@ -142,7 +146,7 @@ yossq236-custom-editor-element {
 
     pre {
         /* width: script control - Proportional to textarea scrollWidth */
-        /* height: script control -  */
+        /* height: script control - Proportional to textarea viewport height */
 
         margin: 0;
     }
