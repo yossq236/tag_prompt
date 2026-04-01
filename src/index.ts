@@ -13,7 +13,7 @@ const extension: ComfyExtension = {
     },
     getCustomWidgets: async (_app) => {
         return {
-            MY_STRING: (node, inputName, inputData, _app, _widgetName) => {
+            'YOSSQ236-CUSTOM-EDITOR': (node, inputName, inputData, _app, _widgetName) => {
                 const editor = document.createElement('yossq236-custom-editor-element') as Editor;
                 const widget = (node as any).addDOMWidget(inputName, inputData[0], editor, {
                     getValue: () => {

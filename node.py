@@ -9,7 +9,7 @@ class TagPromptNode(io.ComfyNode):
             node_id="TagPromptNode",
             display_name="Tag Prompt",
             category="utils",
-            inputs=[io.String.Input("text", multiline=True, extra_dict={"widgetType": "MY_STRING",})],
+            inputs=[io.String.Input("text", multiline=True, extra_dict={"widgetType": "YOSSQ236-CUSTOM-EDITOR",})],
             outputs=[io.String.Output()]
         )
     

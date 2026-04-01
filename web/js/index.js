@@ -385,7 +385,7 @@ customElements.define("yossq236-custom-editor-element", s), e.registerExtension(
 		let t = document.createElement("link");
 		t.rel = "stylesheet", t.type = "text/css", t.href = "/extensions/tag_prompt/assets/index.css", document.head.appendChild(t);
 	},
-	getCustomWidgets: async (e) => ({ MY_STRING: (e, t, n, r, i) => {
+	getCustomWidgets: async (e) => ({ "YOSSQ236-CUSTOM-EDITOR": (e, t, n, r, i) => {
 		let a = document.createElement("yossq236-custom-editor-element");
 		return {
 			widget: e.addDOMWidget(t, n[0], a, {
