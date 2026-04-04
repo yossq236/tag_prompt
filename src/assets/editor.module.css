@@ -81,7 +81,7 @@ yossq236-custom-editor-element {
 
     pre {
         width: fit-content;
-        min-width: 8px;
+        min-width: 1em;
         /* height: script control - Proportional to textarea scrollHeight */
 
         margin: 0;
@@ -146,6 +146,7 @@ yossq236-custom-editor-element {
 
     pre {
         /* width: script control - Proportional to textarea scrollWidth */
+        min-width: 1em;
         /* height: script control - Proportional to textarea viewport height */
 
         margin: 0;

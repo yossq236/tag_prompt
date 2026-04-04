@@ -1,13 +1,13 @@
 import { app as e } from "/scripts/app.js";
 //#region src/editorWorker.ts?sharedworker&url
 var t = "/extensions/tag_prompt/assets/editorWorker.js", n = {
-	container: "_container_r1ly2_13",
-	linenoView: "_lineno-view_r1ly2_81",
-	selected: "_selected_r1ly2_83",
-	headerView: "_header-view_r1ly2_97",
-	bodyContainer: "_body-container_r1ly2_183",
-	highlightView: "_highlight-view_r1ly2_261",
-	suggestionView: "_suggestion-view_r1ly2_311"
+	container: "_container_1wpqu_13",
+	linenoView: "_lineno-view_1wpqu_81",
+	selected: "_selected_1wpqu_83",
+	headerView: "_header-view_1wpqu_97",
+	bodyContainer: "_body-container_1wpqu_183",
+	highlightView: "_highlight-view_1wpqu_261",
+	suggestionView: "_suggestion-view_1wpqu_313"
 };
 //#endregion
 //#region src/utils.ts
