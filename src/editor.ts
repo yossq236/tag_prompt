@@ -310,20 +310,20 @@ export class Editor extends HTMLElement {
     // lineno view
 
     private reflectScrollSizeToLinenoView() {
-        if (this.textareaScrollSize.dirty && this.linenoViewPre) {
-            this.linenoViewPre.style.height = this.textareaScrollSize.height + 'px';
+        if (this.textareaScrollSize.dirty) {
+            this.linenoViewPre!.style.height = this.textareaScrollSize.height + 'px';
         }
     }
 
     private reflectClientSizeToLinenoView() {
-        if (this.textareaClientSize.dirty && this.linenoView) {
-            this.linenoView.style.height = this.textareaClientSize.height + 'px';
+        if (this.textareaClientSize.dirty) {
+            this.linenoView!.style.height = this.textareaClientSize.height + 'px';
         }
     }
 
     private reflectScrollPositionToLinenoView() {
-        if (this.textareaScrollPosition.dirty_top && this.linenoView) {
-            this.linenoView.scrollTop = this.textareaScrollPosition.top;
+        if (this.textareaScrollPosition.dirty_top) {
+            this.linenoView!.scrollTop = this.textareaScrollPosition.top;
         }
     }
 
@@ -404,7 +404,7 @@ export class Editor extends HTMLElement {
             }
             // update content
             if (this.highlightViewState.dirty) {
-                this.highlightViewCode!.innerHTML = this.highlightViewState.rows.filter((_,i) => row_start <= i && i <= row_end).join('\n');
+                this.highlightViewCode!.innerHTML = this.highlightViewState.rows.slice(row_start, row_end + 1).join('\n');
                 this.highlightViewState.dirty = false;
             }
         }

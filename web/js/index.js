@@ -179,13 +179,13 @@ var s = class extends HTMLElement {
 		}
 	}
 	reflectScrollSizeToLinenoView() {
-		this.textareaScrollSize.dirty && this.linenoViewPre && (this.linenoViewPre.style.height = this.textareaScrollSize.height + "px");
+		this.textareaScrollSize.dirty && (this.linenoViewPre.style.height = this.textareaScrollSize.height + "px");
 	}
 	reflectClientSizeToLinenoView() {
-		this.textareaClientSize.dirty && this.linenoView && (this.linenoView.style.height = this.textareaClientSize.height + "px");
+		this.textareaClientSize.dirty && (this.linenoView.style.height = this.textareaClientSize.height + "px");
 	}
 	reflectScrollPositionToLinenoView() {
-		this.textareaScrollPosition.dirty_top && this.linenoView && (this.linenoView.scrollTop = this.textareaScrollPosition.top);
+		this.textareaScrollPosition.dirty_top && (this.linenoView.scrollTop = this.textareaScrollPosition.top);
 	}
 	reflectContentToLinenoView() {
 		let e = this.linenoViewState.dirty, t = this.linenoViewState.dirty || this.textareaSelectionStart.dirty || this.textareaSelectionEnd.dirty;
@@ -218,7 +218,7 @@ var s = class extends HTMLElement {
 	reflectContentToHighlightView() {
 		if (this.textareaClientSize.dirty || this.textareaScrollPosition.dirty_top || this.highlightViewState.dirty) {
 			let e = this.textareaScrollPosition.top, t = e + this.textareaClientSize.height, n = Math.max(0, this.linenoViewState.rows.findIndex((t) => e < t.bottom)), r = Math.max(0, this.linenoViewState.rows.findLastIndex((e) => e.top < t)), i = this.highlightViewState.row_end - this.highlightViewState.row_start, a = r - n, o = this.highlightViewState.viewport_top - (this.highlightViewState.row_start < this.linenoViewState.rows.length ? this.linenoViewState.rows[this.highlightViewState.row_start].top : 0), s = e - (n < this.linenoViewState.rows.length ? this.linenoViewState.rows[n].top : 0);
-			(this.highlightViewState.row_start !== n || this.highlightViewState.row_end !== r) && (this.highlightViewState.row_start = n, this.highlightViewState.row_end = r, this.highlightViewState.dirty = !0), (this.highlightViewState.viewport_top !== e || this.highlightViewState.viewport_bottom !== t) && (this.highlightViewState.viewport_top = e, this.highlightViewState.viewport_bottom = t), a !== i && (this.highlightViewPre.style.height = (r < this.linenoViewState.rows.length ? this.linenoViewState.rows[r].bottom : 0) - (n < this.linenoViewState.rows.length ? this.linenoViewState.rows[n].top : 0) + "px"), s !== o && (this.highlightView.scrollTop = s), this.highlightViewState.dirty && (this.highlightViewCode.innerHTML = this.highlightViewState.rows.filter((e, t) => n <= t && t <= r).join("\n"), this.highlightViewState.dirty = !1);
+			(this.highlightViewState.row_start !== n || this.highlightViewState.row_end !== r) && (this.highlightViewState.row_start = n, this.highlightViewState.row_end = r, this.highlightViewState.dirty = !0), (this.highlightViewState.viewport_top !== e || this.highlightViewState.viewport_bottom !== t) && (this.highlightViewState.viewport_top = e, this.highlightViewState.viewport_bottom = t), a !== i && (this.highlightViewPre.style.height = (r < this.linenoViewState.rows.length ? this.linenoViewState.rows[r].bottom : 0) - (n < this.linenoViewState.rows.length ? this.linenoViewState.rows[n].top : 0) + "px"), s !== o && (this.highlightView.scrollTop = s), this.highlightViewState.dirty && (this.highlightViewCode.innerHTML = this.highlightViewState.rows.slice(n, r + 1).join("\n"), this.highlightViewState.dirty = !1);
 		}
 	}
 	addTextareaEvents() {
