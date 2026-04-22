@@ -5,8 +5,8 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "@comfyorg/comfyui-frontend-types": "^1.44.2",
-    "typescript": "^6.0.2",
-    "vite": "^8.0.7"
+    "@comfyorg/comfyui-frontend-types": "^1.42.11",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.8"
   }
 }

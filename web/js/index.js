@@ -218,7 +218,7 @@ var s = class extends HTMLElement {
 	reflectContentToHighlightView() {
 		if (this.textareaClientSize.dirty || this.textareaScrollPosition.dirty_top || this.highlightViewState.dirty) {
 			let e = this.textareaScrollPosition.top, t = e + this.textareaClientSize.height, n = Math.max(0, this.linenoViewState.rows.findIndex((t) => e < t.bottom)), r = Math.max(0, this.linenoViewState.rows.findLastIndex((e) => e.top < t)), i = this.highlightViewState.row_end - this.highlightViewState.row_start, a = r - n, o = this.highlightViewState.viewport_top - (this.highlightViewState.row_start < this.linenoViewState.rows.length ? this.linenoViewState.rows[this.highlightViewState.row_start].top : 0), s = e - (n < this.linenoViewState.rows.length ? this.linenoViewState.rows[n].top : 0);
-			(this.highlightViewState.row_start !== n || this.highlightViewState.row_end !== r) && (this.highlightViewState.row_start = n, this.highlightViewState.row_end = r, this.highlightViewState.dirty = !0), (this.highlightViewState.viewport_top !== e || this.highlightViewState.viewport_bottom !== t) && (this.highlightViewState.viewport_top = e, this.highlightViewState.viewport_bottom = t), a !== i && (this.highlightViewPre.style.height = (r < this.linenoViewState.rows.length ? this.linenoViewState.rows[r].bottom : 0) - (n < this.linenoViewState.rows.length ? this.linenoViewState.rows[n].top : 0) + "px"), s !== o && (this.highlightView.scrollTop = s), this.highlightViewState.dirty && (this.highlightViewCode.innerHTML = this.highlightViewState.rows.slice(n, r + 1).join("\n"), this.highlightViewState.dirty = !1);
+			(this.highlightViewState.row_start !== n || this.highlightViewState.row_end !== r) && (this.highlightViewState.row_start = n, this.highlightViewState.row_end = r, this.highlightViewState.dirty = !0), (this.highlightViewState.viewport_top !== e || this.highlightViewState.viewport_bottom !== t) && (this.highlightViewState.viewport_top = e, this.highlightViewState.viewport_bottom = t), this.highlightViewState.dirty && (this.highlightViewCode.innerHTML = this.highlightViewState.rows.slice(n, r + 1).join("\n"), this.highlightViewState.dirty = !1), a !== i && (this.highlightViewPre.style.height = (r < this.linenoViewState.rows.length ? this.linenoViewState.rows[r].bottom : 0) - (n < this.linenoViewState.rows.length ? this.linenoViewState.rows[n].top : 0) + "px"), s !== o && (this.highlightView.scrollTop = s);
 		}
 	}
 	addTextareaEvents() {
@@ -387,16 +387,12 @@ customElements.define("yossq236-custom-editor-element", s), e.registerExtension(
 	},
 	getCustomWidgets: async (e) => ({ "YOSSQ236-CUSTOM-EDITOR": (e, t, n, r, i) => {
 		let a = document.createElement("yossq236-custom-editor-element");
-		return {
-			widget: e.addDOMWidget(t, n[0], a, {
-				getValue: () => a.state,
-				setValue: (e) => {
-					a.state = e;
-				}
-			}),
-			minWidth: 400,
-			minHeight: 300
-		};
+		return { widget: e.addDOMWidget(t, n[0], a, {
+			getValue: () => a.state,
+			setValue: (e) => {
+				a.state = e;
+			}
+		}) };
 	} })
 });
 //#endregion

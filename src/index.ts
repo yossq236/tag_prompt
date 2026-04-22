@@ -23,7 +23,7 @@ const extension: ComfyExtension = {
                         editor.state = newValue;
                     },
                 });
-                return {widget: widget, minWidth: 400, minHeight: 300};
+                return {widget: widget};
             }
         }
     },

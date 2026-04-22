@@ -394,6 +394,11 @@ export class Editor extends HTMLElement {
                 this.highlightViewState.viewport_top = viewport_top;
                 this.highlightViewState.viewport_bottom = viewport_bottom;
             }
+            // update content
+            if (this.highlightViewState.dirty) {
+                this.highlightViewCode!.innerHTML = this.highlightViewState.rows.slice(row_start, row_end + 1).join('\n');
+                this.highlightViewState.dirty = false;
+            }
             // update content height
             if (new_content_height !== cur_content_height) {
                 this.highlightViewPre!.style.height = (((row_end < this.linenoViewState.rows.length) ? this.linenoViewState.rows[row_end].bottom : 0) - ((row_start < this.linenoViewState.rows.length) ? this.linenoViewState.rows[row_start].top : 0)) + 'px';
@@ -401,11 +406,6 @@ export class Editor extends HTMLElement {
             // update content scroll position top
             if (new_scroll_top !== cur_sctoll_top) {
                 this.highlightView!.scrollTop = new_scroll_top;
-            }
-            // update content
-            if (this.highlightViewState.dirty) {
-                this.highlightViewCode!.innerHTML = this.highlightViewState.rows.slice(row_start, row_end + 1).join('\n');
-                this.highlightViewState.dirty = false;
             }
         }
     }
