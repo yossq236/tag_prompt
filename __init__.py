@@ -19,8 +19,7 @@ async def comfy_entrypoint() -> ComfyExtension:
 WEB_DIRECTORY = "./web/js"
 
 NODE_DIR = os.path.dirname(__file__)
-NODE_WEB_DIR = os.path.join(NODE_DIR, "web")
-NODE_WEB_ASSETS_DIR = os.path.join(NODE_WEB_DIR, "assets")
+NODE_WEB_ASSETS_DIR = os.path.join(NODE_DIR, "web", "assets")
 
 @PromptServer.instance.routes.get("/extensions/tag_prompt/assets/{filename}")
 async def get_lib_editor_widget_files(request):

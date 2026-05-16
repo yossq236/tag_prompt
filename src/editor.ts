@@ -298,7 +298,7 @@ export class Editor extends HTMLElement {
         }
     }
 
-    private reflectContentToHeaderView() {
+    private reflectToHeaderView() {
         if (this.headerViewState.dirty) {
             const selected = this.headerViewSelect!.selectedIndex;
             this.headerViewSelect!.innerHTML = this.headerViewState.content;
@@ -309,27 +309,10 @@ export class Editor extends HTMLElement {
 
     // lineno view
 
-    private reflectScrollSizeToLinenoView() {
-        if (this.textareaScrollSize.dirty) {
-            this.linenoViewPre!.style.height = this.textareaScrollSize.height + 'px';
-        }
-    }
-
-    private reflectClientSizeToLinenoView() {
-        if (this.textareaClientSize.dirty) {
-            this.linenoView!.style.height = this.textareaClientSize.height + 'px';
-        }
-    }
-
-    private reflectScrollPositionToLinenoView() {
-        if (this.textareaScrollPosition.dirty_top) {
-            this.linenoView!.scrollTop = this.textareaScrollPosition.top;
-        }
-    }
-
-    private reflectContentToLinenoView() {
+    private reflectToLinenoView() {
         const viewStateDirty = this.linenoViewState.dirty;
         const selectionDirty = this.linenoViewState.dirty || this.textareaSelectionStart.dirty || this.textareaSelectionEnd.dirty;
+        // update content
         if (viewStateDirty) {
             this.linenoViewCode!.innerHTML = this.linenoViewState.content;
             const spans = this.linenoViewCode!.querySelectorAll('span');
@@ -342,6 +325,7 @@ export class Editor extends HTMLElement {
             this.linenoViewState.rows = result;
             this.linenoViewState.dirty = false;
         }
+        // update selection
         if (selectionDirty) {
             const cursor_start = this.textareaSelectionStart;
             const cursor_end = this.textareaSelectionEnd;
@@ -350,63 +334,69 @@ export class Editor extends HTMLElement {
             this.linenoViewCode!.querySelectorAll('span.'+EditorStyles.selected).forEach(e => e.classList.toggle(EditorStyles.selected, false));
             this.linenoViewCode!.querySelectorAll('span:nth-of-type(n+'+(row_start+1)+'):nth-of-type(-n+'+(row_end+1)+')').forEach(e => e.classList.toggle(EditorStyles.selected, true));
         }
+        // update scroll size
+        if (this.textareaScrollSize.dirty) {
+            this.linenoViewPre!.style.height = this.textareaScrollSize.height + 'px';
+        }
+        // update client size
+        if (this.textareaClientSize.dirty) {
+            this.linenoView!.style.height = this.textareaClientSize.height + 'px';
+        }
+        // update scroll position
+        if (this.textareaScrollPosition.dirty_top) {
+            this.linenoView!.scrollTop = this.textareaScrollPosition.top;
+        }
     }
 
     // highlight view
 
-    private reflectScrollSizeToHighlightView() {
-        if (this.textareaScrollSize.dirty) {
-            this.highlightViewPre!.style.width = this.textareaScrollSize.width + 'px';
-        }
-    }
-
-    private reflectClientSizeToHighlightView() {
-        if (this.textareaClientSize.dirty) {
-            this.highlightView!.style.width = this.textareaClientSize.width + 'px';
-            this.highlightView!.style.height = this.textareaClientSize.height + 'px';
-        }
-    }
-
-    private reflectScrollPositionToHighlightView() {
-        if (this.textareaScrollPosition.dirty_left) {
-            this.highlightView!.scrollLeft = this.textareaScrollPosition.left;
-        }
-    }
-
-    private reflectContentToHighlightView() {
-        if (this.textareaClientSize.dirty || this.textareaScrollPosition.dirty_top || this.highlightViewState.dirty) {
+    private reflectToHighlightView() {
+        const scrollSizeState: SizeState = {width: this.textareaScrollSize.width, height: 0, dirty: this.textareaScrollSize.dirty};
+        const scrollPositionState: ScrollState = {top: 0, left: this.textareaScrollPosition.left, dirty_top: false, dirty_left: this.textareaScrollPosition.dirty_left};
+        if (this.highlightViewState.dirty || this.textareaClientSize.dirty || this.textareaScrollPosition.dirty_top) {
             const viewport_top = this.textareaScrollPosition.top;
             const viewport_bottom = viewport_top + this.textareaClientSize.height;
             const row_start = Math.max(0, this.linenoViewState.rows.findIndex(v => viewport_top < v.bottom));
             const row_end = Math.max(0, this.linenoViewState.rows.findLastIndex(v => v.top < viewport_bottom));
-            const cur_content_height = this.highlightViewState.row_end - this.highlightViewState.row_start;
-            const new_content_height = row_end - row_start;
-            const cur_sctoll_top = this.highlightViewState.viewport_top - ((this.highlightViewState.row_start < this.linenoViewState.rows.length) ? this.linenoViewState.rows[this.highlightViewState.row_start].top : 0);
-            const new_scroll_top = viewport_top - ((row_start < this.linenoViewState.rows.length) ? this.linenoViewState.rows[row_start].top : 0);
-            // update row_start, row_end
+            // update state row_start, row_end
             if (this.highlightViewState.row_start !== row_start || this.highlightViewState.row_end !== row_end) {
                 this.highlightViewState.row_start = row_start;
                 this.highlightViewState.row_end = row_end;
                 this.highlightViewState.dirty = true;
             }
-            // update viewport_top, viewport_bottom
+            // update state viewport_top, viewport_bottom
             if (this.highlightViewState.viewport_top !== viewport_top || this.highlightViewState.viewport_bottom !== viewport_bottom) {
                 this.highlightViewState.viewport_top = viewport_top;
                 this.highlightViewState.viewport_bottom = viewport_bottom;
             }
+            // update state scroll size height
+            scrollSizeState.height = ((row_end < this.linenoViewState.rows.length) ? this.linenoViewState.rows[row_end].bottom : 0) - ((row_start < this.linenoViewState.rows.length) ? this.linenoViewState.rows[row_start].top : 0);
+            scrollSizeState.dirty = true;
+            // update state scroll position top
+            scrollPositionState.top = viewport_top - ((row_start < this.linenoViewState.rows.length) ? this.linenoViewState.rows[row_start].top : 0);
+            scrollPositionState.dirty_top = true;
             // update content
             if (this.highlightViewState.dirty) {
                 this.highlightViewCode!.innerHTML = this.highlightViewState.rows.slice(row_start, row_end + 1).join('\n');
                 this.highlightViewState.dirty = false;
             }
-            // update content height
-            if (new_content_height !== cur_content_height) {
-                this.highlightViewPre!.style.height = (((row_end < this.linenoViewState.rows.length) ? this.linenoViewState.rows[row_end].bottom : 0) - ((row_start < this.linenoViewState.rows.length) ? this.linenoViewState.rows[row_start].top : 0)) + 'px';
-            }
-            // update content scroll position top
-            if (new_scroll_top !== cur_sctoll_top) {
-                this.highlightView!.scrollTop = new_scroll_top;
-            }
+        }
+        // update scroll size
+        if (scrollSizeState.dirty) {
+            this.highlightViewPre!.style.width = scrollSizeState.width + 'px';
+            this.highlightViewPre!.style.height = scrollSizeState.height + 'px';
+        }
+        // update client size
+        if (this.textareaClientSize.dirty) {
+            this.highlightView!.style.width = this.textareaClientSize.width + 'px';
+            this.highlightView!.style.height = this.textareaClientSize.height + 'px';
+        }
+        // update scroll position
+        if (scrollPositionState.dirty_left) {
+            this.highlightView!.scrollLeft = scrollPositionState.left;
+        }
+        if (scrollPositionState.dirty_top) {
+            this.highlightView!.scrollTop = scrollPositionState.top;
         }
     }
 
@@ -683,7 +673,7 @@ export class Editor extends HTMLElement {
         }
     }
 
-    private reflectContentToSuggestionView() {
+    private reflectToSuggestionView() {
         const dirty = this.textareaContent.dirty || this.suggestionViewState.dirty;
         if (dirty) {
             const caret = this.highlightViewCode!.querySelector('span.caret') as HTMLSpanElement;
@@ -789,9 +779,11 @@ export class Editor extends HTMLElement {
     // animation frame
 
     private requestTickAnimationFrame(): void {
-        if (this.tickAnimationFrameID === 0) {
-            this.tickAnimationFrameID = window.requestAnimationFrame((t: DOMHighResTimeStamp) => this.handleTickAnimationFrame(t));
+        if (this.tickAnimationFrameID !== 0) {
+            window.cancelAnimationFrame(this.tickAnimationFrameID);
+            this.tickAnimationFrameID = 0;
         }
+        this.tickAnimationFrameID = window.requestAnimationFrame((t: DOMHighResTimeStamp) => this.handleTickAnimationFrame(t));
     }
 
     private handleTickAnimationFrame(_time: DOMHighResTimeStamp): void {
@@ -802,19 +794,13 @@ export class Editor extends HTMLElement {
         this.storeClientSize();
         this.storeScrollPosition();
         // header view
-        this.reflectContentToHeaderView();
+        this.reflectToHeaderView();
         // lineno view
-        this.reflectScrollSizeToLinenoView();
-        this.reflectClientSizeToLinenoView();
-        this.reflectScrollPositionToLinenoView();
-        this.reflectContentToLinenoView();
+        this.reflectToLinenoView();
         // highlight view
-        this.reflectScrollSizeToHighlightView();
-        this.reflectClientSizeToHighlightView();
-        this.reflectScrollPositionToHighlightView();
-        this.reflectContentToHighlightView();
+        this.reflectToHighlightView();
         // suggestion view
-        this.reflectContentToSuggestionView();
+        this.reflectToSuggestionView();
         // end
         this.reflectedSelection();
         this.reflectedScrollSize();

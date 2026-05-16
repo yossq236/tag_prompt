@@ -22,7 +22,7 @@ class TagPromptNode(io.ComfyNode):
                 parse_text = obj["text"]
         except json.JSONDecodeError as e:
             pass
-        return parse_text
+        return hash(parse_text)
     
     @classmethod
     def execute(cls, text) -> io.NodeOutput:

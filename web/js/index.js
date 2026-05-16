@@ -172,22 +172,13 @@ var s = class extends HTMLElement {
 			});
 		}
 	}
-	reflectContentToHeaderView() {
+	reflectToHeaderView() {
 		if (this.headerViewState.dirty) {
 			let e = this.headerViewSelect.selectedIndex;
 			this.headerViewSelect.innerHTML = this.headerViewState.content, this.headerViewSelect.selectedIndex = e, this.headerViewState.dirty = !1;
 		}
 	}
-	reflectScrollSizeToLinenoView() {
-		this.textareaScrollSize.dirty && (this.linenoViewPre.style.height = this.textareaScrollSize.height + "px");
-	}
-	reflectClientSizeToLinenoView() {
-		this.textareaClientSize.dirty && (this.linenoView.style.height = this.textareaClientSize.height + "px");
-	}
-	reflectScrollPositionToLinenoView() {
-		this.textareaScrollPosition.dirty_top && (this.linenoView.scrollTop = this.textareaScrollPosition.top);
-	}
-	reflectContentToLinenoView() {
+	reflectToLinenoView() {
 		let e = this.linenoViewState.dirty, t = this.linenoViewState.dirty || this.textareaSelectionStart.dirty || this.textareaSelectionEnd.dirty;
 		if (e) {
 			this.linenoViewCode.innerHTML = this.linenoViewState.content;
@@ -205,21 +196,24 @@ var s = class extends HTMLElement {
 			let e = this.textareaSelectionStart, t = this.textareaSelectionEnd, r = e.row, i = e.row < t.row && t.column === 0 ? t.row - 1 : t.row;
 			this.linenoViewCode.querySelectorAll("span." + n.selected).forEach((e) => e.classList.toggle(n.selected, !1)), this.linenoViewCode.querySelectorAll("span:nth-of-type(n+" + (r + 1) + "):nth-of-type(-n+" + (i + 1) + ")").forEach((e) => e.classList.toggle(n.selected, !0));
 		}
+		this.textareaScrollSize.dirty && (this.linenoViewPre.style.height = this.textareaScrollSize.height + "px"), this.textareaClientSize.dirty && (this.linenoView.style.height = this.textareaClientSize.height + "px"), this.textareaScrollPosition.dirty_top && (this.linenoView.scrollTop = this.textareaScrollPosition.top);
 	}
-	reflectScrollSizeToHighlightView() {
-		this.textareaScrollSize.dirty && (this.highlightViewPre.style.width = this.textareaScrollSize.width + "px");
-	}
-	reflectClientSizeToHighlightView() {
-		this.textareaClientSize.dirty && (this.highlightView.style.width = this.textareaClientSize.width + "px", this.highlightView.style.height = this.textareaClientSize.height + "px");
-	}
-	reflectScrollPositionToHighlightView() {
-		this.textareaScrollPosition.dirty_left && (this.highlightView.scrollLeft = this.textareaScrollPosition.left);
-	}
-	reflectContentToHighlightView() {
-		if (this.textareaClientSize.dirty || this.textareaScrollPosition.dirty_top || this.highlightViewState.dirty) {
-			let e = this.textareaScrollPosition.top, t = e + this.textareaClientSize.height, n = Math.max(0, this.linenoViewState.rows.findIndex((t) => e < t.bottom)), r = Math.max(0, this.linenoViewState.rows.findLastIndex((e) => e.top < t)), i = this.highlightViewState.row_end - this.highlightViewState.row_start, a = r - n, o = this.highlightViewState.viewport_top - (this.highlightViewState.row_start < this.linenoViewState.rows.length ? this.linenoViewState.rows[this.highlightViewState.row_start].top : 0), s = e - (n < this.linenoViewState.rows.length ? this.linenoViewState.rows[n].top : 0);
-			(this.highlightViewState.row_start !== n || this.highlightViewState.row_end !== r) && (this.highlightViewState.row_start = n, this.highlightViewState.row_end = r, this.highlightViewState.dirty = !0), (this.highlightViewState.viewport_top !== e || this.highlightViewState.viewport_bottom !== t) && (this.highlightViewState.viewport_top = e, this.highlightViewState.viewport_bottom = t), this.highlightViewState.dirty && (this.highlightViewCode.innerHTML = this.highlightViewState.rows.slice(n, r + 1).join("\n"), this.highlightViewState.dirty = !1), a !== i && (this.highlightViewPre.style.height = (r < this.linenoViewState.rows.length ? this.linenoViewState.rows[r].bottom : 0) - (n < this.linenoViewState.rows.length ? this.linenoViewState.rows[n].top : 0) + "px"), s !== o && (this.highlightView.scrollTop = s);
+	reflectToHighlightView() {
+		let e = {
+			width: this.textareaScrollSize.width,
+			height: 0,
+			dirty: this.textareaScrollSize.dirty
+		}, t = {
+			top: 0,
+			left: this.textareaScrollPosition.left,
+			dirty_top: !1,
+			dirty_left: this.textareaScrollPosition.dirty_left
+		};
+		if (this.highlightViewState.dirty || this.textareaClientSize.dirty || this.textareaScrollPosition.dirty_top) {
+			let n = this.textareaScrollPosition.top, r = n + this.textareaClientSize.height, i = Math.max(0, this.linenoViewState.rows.findIndex((e) => n < e.bottom)), a = Math.max(0, this.linenoViewState.rows.findLastIndex((e) => e.top < r));
+			(this.highlightViewState.row_start !== i || this.highlightViewState.row_end !== a) && (this.highlightViewState.row_start = i, this.highlightViewState.row_end = a, this.highlightViewState.dirty = !0), (this.highlightViewState.viewport_top !== n || this.highlightViewState.viewport_bottom !== r) && (this.highlightViewState.viewport_top = n, this.highlightViewState.viewport_bottom = r), e.height = (a < this.linenoViewState.rows.length ? this.linenoViewState.rows[a].bottom : 0) - (i < this.linenoViewState.rows.length ? this.linenoViewState.rows[i].top : 0), e.dirty = !0, t.top = n - (i < this.linenoViewState.rows.length ? this.linenoViewState.rows[i].top : 0), t.dirty_top = !0, this.highlightViewState.dirty && (this.highlightViewCode.innerHTML = this.highlightViewState.rows.slice(i, a + 1).join("\n"), this.highlightViewState.dirty = !1);
 		}
+		e.dirty && (this.highlightViewPre.style.width = e.width + "px", this.highlightViewPre.style.height = e.height + "px"), this.textareaClientSize.dirty && (this.highlightView.style.width = this.textareaClientSize.width + "px", this.highlightView.style.height = this.textareaClientSize.height + "px"), t.dirty_left && (this.highlightView.scrollLeft = t.left), t.dirty_top && (this.highlightView.scrollTop = t.top);
 	}
 	addTextareaEvents() {
 		this.textarea.addEventListener("keydown", this.textareaListenerKeydown), this.textarea.addEventListener("input", this.textareaListenerInput), this.textarea.addEventListener("scroll", this.textareaListenerScroll), this.textareaResizeObserver.observe(this.textarea), this.textarea.addEventListener("selectionchange", this.textareaListenerSelectionchange);
@@ -330,7 +324,7 @@ var s = class extends HTMLElement {
 	handleSuggestionViewClick(e) {
 		this.suggestionView.contains(e.target) || this.hiddenSuggestionView();
 	}
-	reflectContentToSuggestionView() {
+	reflectToSuggestionView() {
 		if (this.textareaContent.dirty || this.suggestionViewState.dirty) {
 			let e = this.highlightViewCode.querySelector("span.caret");
 			this.suggestionViewState.visible && e ? (this.suggestionViewSelect.innerHTML = this.suggestionViewState.content, this.suggestionView.style.visibility !== "visible" && (this.suggestionViewSelect.selectedIndex = -1, this.suggestionViewSelect.scrollTop = 0), this.suggestionView.style.top = e.offsetTop + e.offsetHeight - this.highlightView.scrollTop + "px", this.suggestionView.style.left = e.offsetLeft - this.highlightView.scrollLeft + "px", this.suggestionView.style.visibility = "visible") : this.suggestionView.style.visibility === "visible" && (this.suggestionView.style.visibility = "hidden");
@@ -371,10 +365,10 @@ var s = class extends HTMLElement {
 		});
 	}
 	requestTickAnimationFrame() {
-		this.tickAnimationFrameID === 0 && (this.tickAnimationFrameID = window.requestAnimationFrame((e) => this.handleTickAnimationFrame(e)));
+		this.tickAnimationFrameID !== 0 && (window.cancelAnimationFrame(this.tickAnimationFrameID), this.tickAnimationFrameID = 0), this.tickAnimationFrameID = window.requestAnimationFrame((e) => this.handleTickAnimationFrame(e));
 	}
 	handleTickAnimationFrame(e) {
-		this.tickAnimationFrameID = 0, this.storeSelection(), this.storeScrollSize(), this.storeClientSize(), this.storeScrollPosition(), this.reflectContentToHeaderView(), this.reflectScrollSizeToLinenoView(), this.reflectClientSizeToLinenoView(), this.reflectScrollPositionToLinenoView(), this.reflectContentToLinenoView(), this.reflectScrollSizeToHighlightView(), this.reflectClientSizeToHighlightView(), this.reflectScrollPositionToHighlightView(), this.reflectContentToHighlightView(), this.reflectContentToSuggestionView(), this.reflectedSelection(), this.reflectedScrollSize(), this.reflectedClientSize(), this.reflectedScrollPosition();
+		this.tickAnimationFrameID = 0, this.storeSelection(), this.storeScrollSize(), this.storeClientSize(), this.storeScrollPosition(), this.reflectToHeaderView(), this.reflectToLinenoView(), this.reflectToHighlightView(), this.reflectToSuggestionView(), this.reflectedSelection(), this.reflectedScrollSize(), this.reflectedClientSize(), this.reflectedScrollPosition();
 	}
 };
 //#endregion
